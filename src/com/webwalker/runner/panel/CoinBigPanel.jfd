@@ -1,0 +1,260 @@
+JFDML JFormDesigner: "6.0.2.0.116" Java: "1.8.0_152-release" encoding: "UTF-8"
+
+new FormModel {
+	contentType: "form/swing"
+	root: new FormRoot {
+		add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jformdesigner.runtime.NullLayout ) ) {
+			name: "this"
+			add( new FormContainer( "javax.swing.JTabbedPane", new FormLayoutManager( class javax.swing.JTabbedPane ) ) {
+				name: "tabbedPane1"
+				"selectedIndex": 0
+				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jformdesigner.runtime.NullLayout ) ) {
+					name: "panel3"
+				}, new FormLayoutConstraints( null ) {
+					"title": "使用说明"
+				} )
+				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jformdesigner.runtime.NullLayout ) ) {
+					name: "panel1"
+				}, new FormLayoutConstraints( null ) {
+					"title": "参数配置"
+				} )
+				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jformdesigner.runtime.NullLayout ) ) {
+					name: "panel2"
+					add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class org.jdesktop.layout.GroupLayout ) {
+						"$horizontalGroup": "par l {seq {par l {seq t {space :p:18:p, par l {comp label1::l:p:60:p, comp label2::l:p:73:p}, space :::p, par l {comp textField1::::220:x, comp textField2::::220:x}}, seq t {space ::18:x, comp label7:::p:73:p, space :6:6:p, comp textField5:::p:220:p}}, space :::p}}"
+						"$verticalGroup": "par l {seq l {par t {seq t {comp label1:::p:28:p, space u:::p, comp label2:::p:28:p}, seq t {comp textField1:::p::p, space u:::p, comp textField2:::p::p}}, space u:::p, par l {comp label7:::p:28:p, comp textField5:::p::p}, space :0:8:x}}"
+					} ) {
+						name: "panel4"
+						"border": new javax.swing.border.TitledBorder( "API设置" )
+						add( new FormComponent( "javax.swing.JLabel" ) {
+							name: "label1"
+							"text": "ApiKey"
+							"horizontalAlignment": 2
+						} )
+						add( new FormComponent( "javax.swing.JLabel" ) {
+							name: "label2"
+							"text": "SecretKey"
+							"horizontalAlignment": 2
+						} )
+						add( new FormComponent( "javax.swing.JTextField" ) {
+							name: "textField1"
+						} )
+						add( new FormComponent( "javax.swing.JTextField" ) {
+							name: "textField2"
+						} )
+						add( new FormComponent( "javax.swing.JLabel" ) {
+							name: "label7"
+							"text": "Auth Code"
+							"horizontalAlignment": 2
+						} )
+						add( new FormComponent( "javax.swing.JTextField" ) {
+							name: "textField5"
+						} )
+					}, new FormLayoutConstraints( class com.jformdesigner.runtime.NullConstraints ) {
+						"x": 20
+						"y": 5
+						"width": 335
+						"height": 140
+					} )
+					add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class org.jdesktop.layout.GroupLayout ) {
+						"$horizontalGroup": "par l {seq l {space :::p, comp radioButton1:::p::p, space :::p, comp radioButton2:::p::p, space :::p, comp radioButton3:::p::p, space ::8:x, comp radioButton4:::p::p, space :::p}, seq l {space :p:14:p, comp label3:::p:73:p, space :::p, comp comboBox1:::p:205:p, space ::25:x}}"
+						"$verticalGroup": "par l {seq l {space :p:18:p, par b {comp radioButton1::b:p::p, comp radioButton2::b:p::p, comp radioButton3::b:p::p, comp radioButton4::b:p::p}, space :::p, par b {comp comboBox1::b:p::p, comp label3::b:p:28:p}, space ::13:x}}"
+					} ) {
+						name: "panel5"
+						"border": new javax.swing.border.TitledBorder( "交易对设置" )
+						add( new FormComponent( "javax.swing.JRadioButton" ) {
+							name: "radioButton1"
+							"text": "USDT"
+							addEvent( new FormEvent( "java.awt.event.MouseListener", "mouseClicked", "radioButton1MouseClicked", true ) )
+						} )
+						add( new FormComponent( "javax.swing.JRadioButton" ) {
+							name: "radioButton2"
+							"text": "BTC"
+						} )
+						add( new FormComponent( "javax.swing.JRadioButton" ) {
+							name: "radioButton3"
+							"text": "ETH"
+						} )
+						add( new FormComponent( "javax.swing.JRadioButton" ) {
+							name: "radioButton4"
+							"text": "BCH"
+						} )
+						add( new FormComponent( "javax.swing.JLabel" ) {
+							name: "label3"
+							"text": "子币种选择"
+							"horizontalAlignment": 2
+						} )
+						add( new FormComponent( "javax.swing.JComboBox" ) {
+							name: "comboBox1"
+						} )
+					}, new FormLayoutConstraints( class com.jformdesigner.runtime.NullConstraints ) {
+						"width": 335
+						"height": 115
+						"x": 20
+						"y": 155
+					} )
+					add( new FormComponent( "javax.swing.JButton" ) {
+						name: "button1"
+						"text": "启动"
+					}, new FormLayoutConstraints( class com.jformdesigner.runtime.NullConstraints ) {
+						"x": 255
+						"y": 400
+						"width": 100
+						"height": 40
+					} )
+					add( new FormComponent( "javax.swing.JButton" ) {
+						name: "button2"
+						"text": "暂停"
+					}, new FormLayoutConstraints( class com.jformdesigner.runtime.NullConstraints ) {
+						"width": 100
+						"height": 40
+						"x": 370
+						"y": 400
+					} )
+					add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class org.jdesktop.layout.GroupLayout ) {
+						"$horizontalGroup": "par l {seq {space :::p, par l {seq l {par l {seq l {comp label5:::p:73:p, space :p:59:p}, seq {comp label4:::::x, space :::p}}, par l {seq {comp radioButton5:::p::p, space :::p, comp radioButton6:::p::p}, seq {space :6:6:p, comp label11:::p:114:p}}, space :p:18:p}, seq t {par t {seq t {space :0:0:x, comp textField3:::p:163:p}, seq l {comp label10:::p:73:p, space :::x, comp textField4:::p:65:p}}, space :p:27:p}, seq {par l:::p {seq l {comp label12:::p:104:p, space :p:30:p, comp textField8:::::x}, seq {comp label13:::p:104:p, space :p:30:p, comp textField9:::p:158:p}, seq l {comp label14:::p:128:p, space :::p, comp radioButton7:::p::p}, seq l {comp label15:::p:104:p, space :31:31:p, comp textField10:::p:161:p}}, space :0:0:x}}}}"
+						"$verticalGroup": "par l {seq l {space :p:15:p, par b {comp label5::b:p:28:p, comp radioButton5::b:p::p, comp radioButton6::b:p::p}, space :p:12:p, par b {comp label4::b:p:28:p, comp textField3::b:p::p}, space u:::p, par b {comp label10::b:p:28:p, comp textField4::b:p::p, comp label11::b:p:28:p}, space s:::p, par b {comp label12::b:p:28:p, comp textField8::b:p::p}, space :p:12:p, par l {comp label15:::p:28:p, comp textField10:::p::p}, space u:::p, par b {comp label13::b:p:28:p, comp textField9::b:p::p}, space u:::p, par t {comp label14:::p:28:p, comp radioButton7:::p::p}, space ::72:x}}"
+					} ) {
+						name: "panel6"
+						"border": new javax.swing.border.TitledBorder( "其他参数设置" )
+						add( new FormComponent( "javax.swing.JLabel" ) {
+							name: "label4"
+							"text": "单笔交易数量:"
+							"horizontalAlignment": 2
+						} )
+						add( new FormComponent( "javax.swing.JLabel" ) {
+							name: "label5"
+							"text": "交易类型:"
+							"horizontalAlignment": 2
+						} )
+						add( new FormComponent( "javax.swing.JTextField" ) {
+							name: "textField3"
+							"text": "0.01"
+						} )
+						add( new FormComponent( "javax.swing.JRadioButton" ) {
+							name: "radioButton5"
+							"text": "限价单"
+						} )
+						add( new FormComponent( "javax.swing.JRadioButton" ) {
+							name: "radioButton6"
+							"text": "市价单"
+						} )
+						add( new FormComponent( "javax.swing.JLabel" ) {
+							name: "label10"
+							"text": "价差设置:"
+							"horizontalAlignment": 2
+						} )
+						add( new FormComponent( "javax.swing.JLabel" ) {
+							name: "label11"
+							"text": "买入价-卖出价="
+							"horizontalAlignment": 2
+						} )
+						add( new FormComponent( "javax.swing.JTextField" ) {
+							name: "textField4"
+							"text": "0.01"
+							"horizontalAlignment": 0
+						} )
+						add( new FormComponent( "javax.swing.JLabel" ) {
+							name: "label12"
+							"text": "作业周期/s:"
+							"horizontalAlignment": 2
+						} )
+						add( new FormComponent( "javax.swing.JTextField" ) {
+							name: "textField8"
+							"text": "10"
+						} )
+						add( new FormComponent( "javax.swing.JLabel" ) {
+							name: "label13"
+							"text": "订单取消周期/s:"
+							"horizontalAlignment": 2
+						} )
+						add( new FormComponent( "javax.swing.JTextField" ) {
+							name: "textField9"
+							"text": "30"
+						} )
+						add( new FormComponent( "javax.swing.JLabel" ) {
+							name: "label14"
+							"text": "部分成交单自动卖出:"
+							"horizontalAlignment": 2
+						} )
+						add( new FormComponent( "javax.swing.JRadioButton" ) {
+							name: "radioButton7"
+							"text": "是"
+						} )
+						add( new FormComponent( "javax.swing.JLabel" ) {
+							name: "label15"
+							"text": "交易延时周期/s:"
+							"horizontalAlignment": 2
+						} )
+						add( new FormComponent( "javax.swing.JTextField" ) {
+							name: "textField10"
+							"text": "3.1"
+						} )
+					}, new FormLayoutConstraints( class com.jformdesigner.runtime.NullConstraints ) {
+						"width": 325
+						"height": 385
+						"x": 370
+						"y": 5
+					} )
+					add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class org.jdesktop.layout.GroupLayout ) {
+						"$horizontalGroup": "par l {seq l {space :p:15:p, par l {comp label6::l:p:61:p, comp label8::l:p::p}, space s:::p, par l {seq {comp textField6:::p:49:p, space :p:12:p, comp label9:::p::p, space :::p, comp textField7:::p:69:p}, comp comboBox2:::p:205:p}, space ::24:x}}"
+						"$verticalGroup": "par l {seq l {space :::p, par b {comp label6::b:p:28:p, comp comboBox2::b:p::p}, space :::p, par b {comp label8::b:p:28:p, comp textField6::b:p::p, comp label9::b:p:28:p, comp textField7::b:p::p}, space ::18:x}}"
+					} ) {
+						name: "panel7"
+						"border": new javax.swing.border.TitledBorder( "交易策略设置" )
+						add( new FormComponent( "javax.swing.JLabel" ) {
+							name: "label6"
+							"text": "策略选择"
+							"horizontalAlignment": 2
+						} )
+						add( new FormComponent( "javax.swing.JComboBox" ) {
+							name: "comboBox2"
+							"model": new javax.swing.DefaultComboBoxModel {
+								selectedItem: "Avg"
+								addElement( "Avg" )
+								addElement( "Last" )
+								addElement( "Bid" )
+								addElement( "Mid" )
+							}
+						} )
+						add( new FormComponent( "javax.swing.JLabel" ) {
+							name: "label8"
+							"text": "深度系数"
+							"horizontalAlignment": 2
+						} )
+						add( new FormComponent( "javax.swing.JTextField" ) {
+							name: "textField6"
+							"text": "5"
+							"horizontalAlignment": 0
+						} )
+						add( new FormComponent( "javax.swing.JLabel" ) {
+							name: "label9"
+							"text": "平均值"
+							"horizontalAlignment": 2
+						} )
+						add( new FormComponent( "javax.swing.JTextField" ) {
+							name: "textField7"
+							"horizontalAlignment": 0
+							"text": "0.009"
+						} )
+					}, new FormLayoutConstraints( class com.jformdesigner.runtime.NullConstraints ) {
+						"width": 335
+						"height": 110
+						"x": 20
+						"y": 280
+					} )
+				}, new FormLayoutConstraints( null ) {
+					"title": "运行状态"
+				} )
+			}, new FormLayoutConstraints( class com.jformdesigner.runtime.NullConstraints ) {
+				"x": 0
+				"y": 0
+				"width": 730
+				"height": 490
+			} )
+		}, new FormLayoutConstraints( null ) {
+			"location": new java.awt.Point( 0, 0 )
+			"size": new java.awt.Dimension( 725, 485 )
+		} )
+	}
+}

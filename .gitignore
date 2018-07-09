@@ -21,3 +21,35 @@
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
+
+/local.properties
+*.hprof
+/.idea/workspace.xml
+/.idea/libraries
+.DS_Store
+/build
+/plugin
+
+.idea/
+
+# Gradle files
+.gradle
+gradle/
+build/
+*/.gradle/
+*/gradle/
+*/build/
+*/.idea/
+node_modules/
+*.iml
+gradlew
+gradlew.bat
+# ignore Libs dictionary
+captures/
+release-tools/
+freeline/
+freeline_core/
+freeline.py
+freeline_project_description.json
+
+release/
