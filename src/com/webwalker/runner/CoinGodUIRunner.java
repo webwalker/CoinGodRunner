@@ -1,6 +1,10 @@
+package com.webwalker.runner;
+
+import com.webwalker.runner.panel.MainPanel;
+
 import javax.swing.*;
 
-public class Main {
+public class CoinGodUIRunner {
     public static void main(String[] args) {
         JFrame frame = new JFrame("MainForm");
         //com.sun.awt.AWTUtilities.setWindowOpacity(panel, 0.6f); //半透明
@@ -10,7 +14,7 @@ public class Main {
         //panel.pack();
         frame.setLocationRelativeTo(null);
         frame.setResizable(false);
-        frame.setTitle("CoinGod V1.0.1");
+        frame.setTitle("CoinGod V1.0.3");
         frame.setIconImage(new ImageIcon("/img/icon.jpg").getImage());
 
         frame.setContentPane(new MainPanel());
