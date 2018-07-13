@@ -31,10 +31,11 @@ new FormModel {
 				"icon": new com.jformdesigner.model.SwingIcon( 0, "/img/zbg.jpg" )
 				"horizontalAlignment": 0
 				"text": "ZBG"
-				"toolTipText": "CoinBig交易所"
+				"toolTipText": "ZBG交易所"
 				"horizontalTextPosition": 0
 				"verticalTextPosition": 3
 				"border": #SwingBorder0
+				"enabled": false
 				addEvent( new FormEvent( "java.awt.event.MouseListener", "mousePressed", "label2MousePressed", true ) )
 				addEvent( new FormEvent( "java.awt.event.MouseListener", "mouseEntered", "label2MouseEntered", true ) )
 				addEvent( new FormEvent( "java.awt.event.MouseListener", "mouseExited", "label2MouseExited", true ) )
@@ -49,10 +50,11 @@ new FormModel {
 				"icon": new com.jformdesigner.model.SwingIcon( 0, "/img/exx.jpg" )
 				"horizontalAlignment": 0
 				"text": "EXX"
-				"toolTipText": "CoinBig交易所"
+				"toolTipText": "EXX交易所"
 				"horizontalTextPosition": 0
 				"verticalTextPosition": 3
 				"border": #SwingBorder0
+				"enabled": false
 				addEvent( new FormEvent( "java.awt.event.MouseListener", "mouseEntered", "label3MouseEntered", true ) )
 				addEvent( new FormEvent( "java.awt.event.MouseListener", "mouseExited", "label3MouseExited", true ) )
 				addEvent( new FormEvent( "java.awt.event.MouseListener", "mousePressed", "label3MousePressed", true ) )

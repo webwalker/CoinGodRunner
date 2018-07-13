@@ -5,6 +5,9 @@ new FormModel {
 	root: new FormRoot {
 		add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jformdesigner.runtime.NullLayout ) ) {
 			name: "this"
+			"preferredSize": new java.awt.Dimension( 720, 445 )
+			"minimumSize": new java.awt.Dimension( 720, 445 )
+			"maximumSize": new java.awt.Dimension( 720, 445 )
 			addEvent( new FormEvent( "java.awt.event.ContainerListener", "componentAdded", "thisComponentAdded", true ) )
 			addEvent( new FormEvent( "java.awt.event.ComponentListener", "componentHidden", "thisComponentHidden", true ) )
 			addEvent( new FormEvent( "java.awt.event.ComponentListener", "componentShown", "thisComponentShown", true ) )
@@ -12,8 +15,12 @@ new FormModel {
 				name: "tabbedPane1"
 				"tabLayoutPolicy": 1
 				"selectedIndex": 0
+				"autoscrolls": true
+				"minimumSize": new java.awt.Dimension( 715, 445 )
+				"preferredSize": new java.awt.Dimension( 715, 445 )
 				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jformdesigner.runtime.NullLayout ) ) {
 					name: "panel2"
+					"minimumSize": new java.awt.Dimension( 715, 445 )
 					add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class org.jdesktop.layout.GroupLayout ) {
 						"$horizontalGroup": "par l {seq {space :::p, par l {comp label1::l:::x, comp label2::l:p:73:p, comp label7::l:p:73:p}, space u:::p, par l {comp txtAccessKey:2:l:p:220:p, comp txtSecretKey:2:l:p:119:p, comp txtAuthCode:2:l:p:220:p}, space :::x}}"
 						"$verticalGroup": "par l {seq t {par b {comp label1::b:p:28:p, comp txtAccessKey:1:b:p::p}, space ::12:x, par l {comp label2:::p:28:p, comp txtSecretKey:1::p:28:p}, space :::p, par b {comp label7::b:p:24:p, comp txtAuthCode:1:b:p::p}, space :p:14:p}}"
@@ -309,6 +316,7 @@ new FormModel {
 						"text": "-----------------"
 						"foreground": new java.awt.Color( 255, 0, 0, 255 )
 						"horizontalAlignment": 4
+						"visible": false
 					}, new FormLayoutConstraints( class com.jformdesigner.runtime.NullConstraints ) {
 						"width": 190
 						"height": 28
@@ -340,15 +348,13 @@ new FormModel {
 				} )
 				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jformdesigner.runtime.NullLayout ) ) {
 					name: "panel3"
+					"minimumSize": new java.awt.Dimension( 715, 445 )
+					"preferredSize": new java.awt.Dimension( 715, 445 )
 					add( new FormContainer( "javax.swing.JScrollPane", new FormLayoutManager( class javax.swing.JScrollPane ) ) {
 						name: "scrollPane1"
-						add( new FormComponent( "javax.swing.JTextArea" ) {
-							name: "textArea1"
-							"rows": 12
-							"lineWrap": true
-							"text": "软件特性：\n1、提供多种策略, 方便不同行情使用\n2、对碰交易时, 当买入一部分,卖出全量失败时, 订单健康检查程序会根据设定的周期检查, 有成交部分的则以行情价卖出, 快速资金回流, 没有成交的则取消掉\n3、同一个授权码多号登录时，只允许一个在线, 如出现异常时请稍候30S\t\n4、对同一个交易所、多个账号的情况，目前需要多开，后续增加多任务管理\n5、修改配置后，请先暂停交易，然后重新启动生效\n\n参数说明：\n1、策略设置\n(1) 策略类型\navg：根据买盘、买盘盘口深度的均价为基准来判断是否达到下单条件(当盘口卖出挂单均价小于盘口买入挂单均价时),相比mid多了一个价差判断\n\nLast：以最新成交价为基准来计算买卖价格，如最新成交价为1234.05，设置价差为0.01，则买入价和卖出价分别为1234.06和1234.04，即买入价大于卖出价，也可设置为-0.01，则此时买入价和卖出价分别为1234.04和1234.06（建议行情稳定时采用：因为当卖单挂5元，买单挂4元。若最新价为5，那么下5的买单，再下个5的卖单，别人5的卖单先排队，所以你买进了别人的，但却卖不出去）\n\nBid：以卖一为买入价，以买一为卖出价进行交易，只能高买低卖，但能快速成交, 不同的交易对需要设定不同的值(对于BTC_USDT而言，建议该值设为0.01)，如买一价1234.01 卖一价1234.02，如果设置价差为0.01，则满足条件执行双向下单，买入价和卖出价分别为1234.02和1234.01，即可马上成交，该值设定越大条件越能满足，成交概率越大，但会亏损一定的价差，反之亦然。\n\nMid：以盘口中间价为基准来计算买卖价格，如买一价1234.01,卖一价1234.06, 中间价为(1234.01+1234.06)/2=1234.035, 如果设置价差为0.01,则买入价为1234.045,卖出价为1234.025\t\t\t\t\t\t\n\n(2) Avg深度个数：用于计算盘口挂单均价所用个数, 1-20之间(coinbig在1-18)\t\n(3) Avg深度条件：当盘口卖出挂单均价小于盘口买入挂单均价(1+深度条件)%倍时, 发出交易指令（不同交易对需要针对币特性自行计算AVG_VALUE比率）\n盘口卖出挂单均价为11000, 买入挂单均价为9900, 11000>9900*1.015=10048.5, 价差太大不发送交易指令。\n盘口卖出挂单均价为10000, 买入挂单均价为9900, 10000<9900*1.015=10048.5, 价差小可发送交易指令\n\n2、交易类型：限价单根据上面的策略+价差得出，市价单则根据市场行情\n3、单笔交易数量：币数量\t\n4、价差设置\n   价差=买入下单价格-卖出下单价格, 若要快速成交建议高买低卖, 该值为正时高买低卖, 为0时买入和卖出价格相同, 为负时低买高卖\n5、作业周期：每隔多少秒进行一次撮合交易\n6、交易延时：买入、卖出交易中间的延时，用于交易所API调用频率限制\n7、订单撤销周期：已下单未完全成交的订单的失效时间，超过该时间，机器人会自动取消该订单\n8、部分成交单自动卖出：买入了部分, 全量卖出失败时, 是否自动卖出，快速回流资金\n9、停止挖矿：几分钟之内出错次数达到多少, 停止挖矿\n10、不挖矿时，需要手工暂停\n\n操作建议：\n1、币价急速下跌时, 尽量不要刷\n2、小额快速成交\n3、适当的交易策略\n4、自动止损\n5、选择比较稳的交易对,波动小风险小\t\t\t\t\t\t"
-							"wrapStyleWord": true
-							"editable": false
+						add( new FormComponent( "javax.swing.JTextPane" ) {
+							name: "txtRemark"
+							"text": "软件特性：\n1、提供多种策略, 方便不同行情使用\n2、对碰交易时, 当买入一部分, 卖出全量失败时, 订单健康检查程序会根据设定的周期检查, 有成交部分的则以行情价卖出, 快速资金回流, 没有成交的则取消掉\n3、对同一个交易所、多个账号的情况，目前需要多开(可以无限开)，后续增加多任务管理\n4、修改配置后，请先暂停交易，然后重新启动生效\n\n参数说明：\n1、策略设置\n(1) 策略类型\navg：根据买盘、买盘盘口深度的均价为基准来判断是否达到下单条件(当盘口卖出挂单均价小于盘口买入挂单均价时),相比mid多了一个价差判断\n\nLast：以最新成交价为基准来计算买卖价格，如最新成交价为1234.05，设置价差为0.01，则买入价和卖出价分别为1234.06和1234.04，即买入价大于卖出价，也可设置为-0.01，则此时买入价和卖出价分别为1234.04和1234.06（建议行情稳定时采用：因为当卖单挂5元，买单挂4元。若最新价为5，那么下5的买单，再下个5的卖单，别人5的卖单先排队，所以你买进了别人的，但却卖不出去）\n\nBid：以卖一为买入价，以买一为卖出价进行交易，只能高买低卖，但能快速成交, 不同的交易对需要设定不同的值(对于BTC_USDT而言，建议该值设为0.01)，如买一价1234.01 卖一价1234.02，如果设置价差为0.01，则满足条件执行双向下单，买入价和卖出价分别为1234.02和1234.01，即可马上成交，该值设定越大条件越能满足，成交概率越大，但会亏损一定的价差，反之亦然。\n\nMid：以盘口中间价为基准来计算买卖价格，如买一价1234.01,卖一价1234.06, 中间价为(1234.01+1234.06)/2=1234.035, 如果设置价差为0.01,则买入价为1234.045,卖出价为1234.025\t\t\t\t\t\t\n\n(2) Avg深度个数：用于计算盘口挂单均价所用个数, 1-20之间(coinbig在1-18)\t\n(3) Avg深度条件：当盘口卖出挂单均价小于盘口买入挂单均价(1+深度条件)%倍时, 发出交易指令（不同交易对需要针对币特性自行计算AVG_VALUE比率）\n盘口卖出挂单均价为11000, 买入挂单均价为9900, 11000>9900*1.015=10048.5, 价差太大不发送交易指令。\n盘口卖出挂单均价为10000, 买入挂单均价为9900, 10000<9900*1.015=10048.5, 价差小可发送交易指令\n\n2、交易类型：限价单根据上面的策略+价差得出，市价单则根据市场行情\n3、单笔交易数量：币数量\t\n4、价差设置\n   价差=买入下单价格-卖出下单价格, 若要快速成交建议高买低卖, 该值为正时高买低卖, 为0时买入和卖出价格相同, 为负时低买高卖\n5、作业周期：每隔多少秒进行一次撮合交易\n6、交易延时：买入、卖出交易中间的延时，用于交易所API调用频率限制\n7、订单取消周期\n   跟随作业周期定时检查((眉笔订单超过该时效设定则为失效订单))\n   已下单未成交的失效订单自动取消\n   已下单只成交了一部分的失效订单自动取消\n8、部分成交单自动卖出：买入了部分, 全量卖出失败时, 是否自动卖出，快速回流资金\n9、停止挖矿：几分钟之内出错次数达到多少, 停止挖矿\n10、不挖矿时，需要手工暂停\n\n操作建议：\n1、币价急速下跌时, 尽量不要刷\n2、小额快速成交\n3、适当的交易策略\n4、自动止损\n5、选择比较稳的交易对,波动小风险小\n\n"
 						} )
 					}, new FormLayoutConstraints( class com.jformdesigner.runtime.NullConstraints ) {
 						"x": 5
@@ -362,17 +368,17 @@ new FormModel {
 			}, new FormLayoutConstraints( class com.jformdesigner.runtime.NullConstraints ) {
 				"x": 0
 				"y": 0
-				"width": 730
+				"width": 720
 				"height": 490
 			} )
 		}, new FormLayoutConstraints( null ) {
 			"location": new java.awt.Point( 0, 0 )
-			"size": new java.awt.Dimension( 725, 485 )
+			"size": new java.awt.Dimension( 785, 515 )
 		} )
 		add( new FormNonVisual( "javax.swing.ButtonGroup" ) {
 			name: "buttonGroup1"
 		}, new FormLayoutConstraints( null ) {
-			"location": new java.awt.Point( 0, 501 )
+			"location": new java.awt.Point( 5, 520 )
 		} )
 	}
 }

@@ -28,11 +28,11 @@ public class MainPanel extends JPanel {
     }
 
     private void label1MousePressed(MouseEvent e) {
-        FrameUtil.open(new CoinBigPanel(), "CoinBig挖矿机器人");
+        FrameUtil.open(new MultiAccountPanel(), "CoinBig挖矿机器人");
     }
 
     private void label2MousePressed(MouseEvent e) {
-        FrameUtil.open(new CoinBigPanel(), "ZBG挖矿机器人");
+        //FrameUtil.open(new MultiAccountPanel(), "ZBG挖矿机器人");
     }
 
     private void label2MouseEntered(MouseEvent e) {
@@ -52,7 +52,7 @@ public class MainPanel extends JPanel {
     }
 
     private void label3MousePressed(MouseEvent e) {
-        FrameUtil.open(new CoinBigPanel(), "EXX挖矿机器人");
+        //FrameUtil.open(new MultiAccountPanel(), "EXX挖矿机器人");
     }
 
     private void initComponents() {
@@ -96,10 +96,11 @@ public class MainPanel extends JPanel {
         label2.setIcon(new ImageIcon(getClass().getResource("/img/zbg.jpg")));
         label2.setHorizontalAlignment(SwingConstants.CENTER);
         label2.setText("ZBG");
-        label2.setToolTipText("CoinBig\u4ea4\u6613\u6240");
+        label2.setToolTipText("ZBG\u4ea4\u6613\u6240");
         label2.setHorizontalTextPosition(SwingConstants.CENTER);
         label2.setVerticalTextPosition(SwingConstants.BOTTOM);
         label2.setBorder(UIManager.getBorder("TitledBorder.border"));
+        label2.setEnabled(false);
         label2.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
@@ -121,10 +122,11 @@ public class MainPanel extends JPanel {
         label3.setIcon(new ImageIcon(getClass().getResource("/img/exx.jpg")));
         label3.setHorizontalAlignment(SwingConstants.CENTER);
         label3.setText("EXX");
-        label3.setToolTipText("CoinBig\u4ea4\u6613\u6240");
+        label3.setToolTipText("EXX\u4ea4\u6613\u6240");
         label3.setHorizontalTextPosition(SwingConstants.CENTER);
         label3.setVerticalTextPosition(SwingConstants.BOTTOM);
         label3.setBorder(UIManager.getBorder("TitledBorder.border"));
+        label3.setEnabled(false);
         label3.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {

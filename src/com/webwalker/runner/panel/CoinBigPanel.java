@@ -35,6 +35,9 @@ public class CoinBigPanel extends JPanel {
     private CoinBigController controller = new CoinBigController();
     private ConfigItem config = new ConfigItem();
     private Timer timer;
+    private List<String> logs = new ArrayList<>();
+    private volatile int logCount;
+    private static Object lockObj = new Object();
 
     public CoinBigPanel() {
         initComponents();
@@ -43,22 +46,6 @@ public class CoinBigPanel extends JPanel {
     private void thisComponentAdded(ContainerEvent e) {
         init();
     }
-
-    @Override
-    protected void paintChildren(Graphics g) {
-        super.paintChildren(g);
-    }
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-    }
-
-    private List<String> logs = new ArrayList<>();
-
-    private volatile int logCount;
-
-    private static Object lockObj = new Object();
 
     private void init() {
         Logger.setCallback(new ICallback<String>() {
@@ -88,6 +75,7 @@ public class CoinBigPanel extends JPanel {
                 }
             }
         }, 1000);
+        txtRemark.setCaretPosition(0);
     }
 
     private void getSymbols(String symbol, ICallback<List<String>> callback) {
@@ -149,6 +137,7 @@ public class CoinBigPanel extends JPanel {
         String path = ConfigResolver.getProjectPath() + "/" + platform + ".json";
         //windows系统
         path = "c:\\CoinGod\\" + platform + ".json";
+        //path = "/Users/xujian/GitHub/CoinGodRunner/lib/CoinBig.json";
         //Logger.d(path);
         return path;
     }
@@ -186,8 +175,8 @@ public class CoinBigPanel extends JPanel {
             showMessage("robotTime");
             return false;
         }
-        if (item.expireTime <= 5) {
-            showMessage("expireTime, 大于5秒");
+        if (item.expireTime < 6) {
+            showMessage("订单撤销周期需大于5秒");
             return false;
         }
         return true;
@@ -207,7 +196,14 @@ public class CoinBigPanel extends JPanel {
         if (config.symbolIndex == 0) {
             radioButton1.setSelected(true);
         }
+
         cbStrategy.setSelectedItem(config.strategyType);
+        if (config.strategyType.toLowerCase().equals(StrategyType.Avg.getType())) {
+            panelAvg.setVisible(true);
+        } else {
+            panelAvg.setVisible(false);
+        }
+
         txtDepthNum.setText(config.depthNum + "");
         txtAvgValue.setText(config.avgValue + "");
         if (config.limitOrder()) {
@@ -367,9 +363,12 @@ public class CoinBigPanel extends JPanel {
         txtLog = new JTextPane();
         panel3 = new JPanel();
         scrollPane1 = new JScrollPane();
-        textArea1 = new JTextArea();
+        txtRemark = new JTextPane();
 
         //======== this ========
+        setPreferredSize(new Dimension(720, 445));
+        setMinimumSize(new Dimension(720, 445));
+        setMaximumSize(new Dimension(720, 445));
         addContainerListener(new ContainerAdapter() {
             @Override
             public void componentAdded(ContainerEvent e) {
@@ -381,7 +380,6 @@ public class CoinBigPanel extends JPanel {
             public void componentHidden(ComponentEvent e) {
                 thisComponentHidden(e);
             }
-
             @Override
             public void componentShown(ComponentEvent e) {
                 thisComponentShown(e);
@@ -392,9 +390,13 @@ public class CoinBigPanel extends JPanel {
         //======== tabbedPane1 ========
         {
             tabbedPane1.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
+            tabbedPane1.setAutoscrolls(true);
+            tabbedPane1.setMinimumSize(new Dimension(715, 445));
+            tabbedPane1.setPreferredSize(new Dimension(715, 445));
 
             //======== panel2 ========
             {
+                panel2.setMinimumSize(new Dimension(715, 445));
                 panel2.setLayout(null);
 
                 //======== panel4 ========
@@ -433,38 +435,38 @@ public class CoinBigPanel extends JPanel {
                     GroupLayout panel4Layout = new GroupLayout(panel4);
                     panel4.setLayout(panel4Layout);
                     panel4Layout.setHorizontalGroup(
-                            panel4Layout.createParallelGroup()
-                                    .addGroup(panel4Layout.createSequentialGroup()
-                                            .addContainerGap()
-                                            .addGroup(panel4Layout.createParallelGroup()
-                                                    .addComponent(label1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                    .addComponent(label2, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(label7, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE))
-                                            .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                                            .addGroup(panel4Layout.createParallelGroup()
-                                                    .addComponent(txtAccessKey, GroupLayout.PREFERRED_SIZE, 220, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(txtSecretKey, GroupLayout.PREFERRED_SIZE, 119, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(txtAuthCode, GroupLayout.PREFERRED_SIZE, 220, GroupLayout.PREFERRED_SIZE))
-                                            .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        panel4Layout.createParallelGroup()
+                            .addGroup(panel4Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(panel4Layout.createParallelGroup()
+                                    .addComponent(label1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                    .addComponent(label2, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(label7, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addGroup(panel4Layout.createParallelGroup()
+                                    .addComponent(txtAccessKey, GroupLayout.PREFERRED_SIZE, 220, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtSecretKey, GroupLayout.PREFERRED_SIZE, 119, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtAuthCode, GroupLayout.PREFERRED_SIZE, 220, GroupLayout.PREFERRED_SIZE))
+                                .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                     );
-                    panel4Layout.linkSize(SwingConstants.HORIZONTAL, new Component[]{txtAccessKey, txtAuthCode, txtSecretKey});
+                    panel4Layout.linkSize(SwingConstants.HORIZONTAL, new Component[] {txtAccessKey, txtAuthCode, txtSecretKey});
                     panel4Layout.setVerticalGroup(
-                            panel4Layout.createParallelGroup()
-                                    .addGroup(GroupLayout.Alignment.TRAILING, panel4Layout.createSequentialGroup()
-                                            .addGroup(panel4Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                                    .addComponent(label1, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(txtAccessKey, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 12, Short.MAX_VALUE)
-                                            .addGroup(panel4Layout.createParallelGroup()
-                                                    .addComponent(label2, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(txtSecretKey, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE))
-                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                            .addGroup(panel4Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                                    .addComponent(label7, GroupLayout.PREFERRED_SIZE, 24, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(txtAuthCode, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                                            .addGap(14, 14, 14))
+                        panel4Layout.createParallelGroup()
+                            .addGroup(GroupLayout.Alignment.TRAILING, panel4Layout.createSequentialGroup()
+                                .addGroup(panel4Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                    .addComponent(label1, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtAccessKey, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 12, Short.MAX_VALUE)
+                                .addGroup(panel4Layout.createParallelGroup()
+                                    .addComponent(label2, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtSecretKey, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(panel4Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                    .addComponent(label7, GroupLayout.PREFERRED_SIZE, 24, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtAuthCode, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                .addGap(14, 14, 14))
                     );
-                    panel4Layout.linkSize(SwingConstants.VERTICAL, new Component[]{txtAccessKey, txtAuthCode, txtSecretKey});
+                    panel4Layout.linkSize(SwingConstants.VERTICAL, new Component[] {txtAccessKey, txtAuthCode, txtSecretKey});
                 }
                 panel2.add(panel4);
                 panel4.setBounds(20, 5, 335, 140);
@@ -493,41 +495,41 @@ public class CoinBigPanel extends JPanel {
                     GroupLayout panel5Layout = new GroupLayout(panel5);
                     panel5.setLayout(panel5Layout);
                     panel5Layout.setHorizontalGroup(
-                            panel5Layout.createParallelGroup()
+                        panel5Layout.createParallelGroup()
+                            .addGroup(panel5Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(panel5Layout.createParallelGroup()
                                     .addGroup(panel5Layout.createSequentialGroup()
-                                            .addContainerGap()
-                                            .addGroup(panel5Layout.createParallelGroup()
-                                                    .addGroup(panel5Layout.createSequentialGroup()
-                                                            .addComponent(radioButton1, GroupLayout.PREFERRED_SIZE, 67, GroupLayout.PREFERRED_SIZE)
-                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                                            .addComponent(radioButton2, GroupLayout.PREFERRED_SIZE, 58, GroupLayout.PREFERRED_SIZE)
-                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                                            .addComponent(radioButton3, GroupLayout.PREFERRED_SIZE, 58, GroupLayout.PREFERRED_SIZE)
-                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                            .addComponent(radioButton4, GroupLayout.PREFERRED_SIZE, 64, GroupLayout.PREFERRED_SIZE))
-                                                    .addGroup(panel5Layout.createSequentialGroup()
-                                                            .addComponent(label3, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
-                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                                            .addComponent(cbSymbol, GroupLayout.PREFERRED_SIZE, 205, GroupLayout.PREFERRED_SIZE)))
-                                            .addContainerGap(31, Short.MAX_VALUE))
+                                        .addComponent(radioButton1, GroupLayout.PREFERRED_SIZE, 67, GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(radioButton2, GroupLayout.PREFERRED_SIZE, 58, GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(radioButton3, GroupLayout.PREFERRED_SIZE, 58, GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                        .addComponent(radioButton4, GroupLayout.PREFERRED_SIZE, 64, GroupLayout.PREFERRED_SIZE))
+                                    .addGroup(panel5Layout.createSequentialGroup()
+                                        .addComponent(label3, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(cbSymbol, GroupLayout.PREFERRED_SIZE, 205, GroupLayout.PREFERRED_SIZE)))
+                                .addContainerGap(31, Short.MAX_VALUE))
                     );
-                    panel5Layout.linkSize(SwingConstants.HORIZONTAL, new Component[]{radioButton1, radioButton2, radioButton3, radioButton4});
+                    panel5Layout.linkSize(SwingConstants.HORIZONTAL, new Component[] {radioButton1, radioButton2, radioButton3, radioButton4});
                     panel5Layout.setVerticalGroup(
-                            panel5Layout.createParallelGroup()
-                                    .addGroup(panel5Layout.createSequentialGroup()
-                                            .addGap(18, 18, 18)
-                                            .addGroup(panel5Layout.createParallelGroup()
-                                                    .addComponent(radioButton4)
-                                                    .addComponent(radioButton3)
-                                                    .addComponent(radioButton2)
-                                                    .addComponent(radioButton1))
-                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                            .addGroup(panel5Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                                    .addComponent(cbSymbol, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(label3, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE))
-                                            .addContainerGap(13, Short.MAX_VALUE))
+                        panel5Layout.createParallelGroup()
+                            .addGroup(panel5Layout.createSequentialGroup()
+                                .addGap(18, 18, 18)
+                                .addGroup(panel5Layout.createParallelGroup()
+                                    .addComponent(radioButton4)
+                                    .addComponent(radioButton3)
+                                    .addComponent(radioButton2)
+                                    .addComponent(radioButton1))
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(panel5Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                    .addComponent(cbSymbol, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(label3, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE))
+                                .addContainerGap(13, Short.MAX_VALUE))
                     );
-                    panel5Layout.linkSize(SwingConstants.VERTICAL, new Component[]{radioButton1, radioButton2, radioButton3, radioButton4});
+                    panel5Layout.linkSize(SwingConstants.VERTICAL, new Component[] {radioButton1, radioButton2, radioButton3, radioButton4});
                 }
                 panel2.add(panel5);
                 panel5.setBounds(20, 155, 335, 115);
@@ -645,102 +647,102 @@ public class CoinBigPanel extends JPanel {
                     GroupLayout panel6Layout = new GroupLayout(panel6);
                     panel6.setLayout(panel6Layout);
                     panel6Layout.setHorizontalGroup(
-                            panel6Layout.createParallelGroup()
-                                    .addGroup(panel6Layout.createSequentialGroup()
-                                            .addContainerGap()
-                                            .addGroup(panel6Layout.createParallelGroup()
-                                                    .addGroup(GroupLayout.Alignment.TRAILING, panel6Layout.createSequentialGroup()
-                                                            .addGroup(panel6Layout.createParallelGroup()
-                                                                    .addComponent(label5, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
-                                                                    .addComponent(label4, GroupLayout.PREFERRED_SIZE, 92, GroupLayout.PREFERRED_SIZE))
-                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 39, Short.MAX_VALUE)
-                                                            .addGroup(panel6Layout.createParallelGroup()
-                                                                    .addComponent(txtAmount, GroupLayout.PREFERRED_SIZE, 166, GroupLayout.PREFERRED_SIZE)
-                                                                    .addGroup(panel6Layout.createSequentialGroup()
-                                                                            .addComponent(rbLimitOrder, GroupLayout.PREFERRED_SIZE, 77, GroupLayout.PREFERRED_SIZE)
-                                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                                                            .addComponent(rbMarketOrder)))
-                                                            .addGap(20, 20, 20))
-                                                    .addGroup(panel6Layout.createSequentialGroup()
-                                                            .addGroup(panel6Layout.createParallelGroup()
-                                                                    .addComponent(label17, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
-                                                                    .addGroup(panel6Layout.createSequentialGroup()
-                                                                            .addGroup(panel6Layout.createParallelGroup()
-                                                                                    .addComponent(label14, GroupLayout.PREFERRED_SIZE, 128, GroupLayout.PREFERRED_SIZE)
-                                                                                    .addComponent(label12, GroupLayout.PREFERRED_SIZE, 104, GroupLayout.PREFERRED_SIZE)
-                                                                                    .addComponent(label13, GroupLayout.PREFERRED_SIZE, 104, GroupLayout.PREFERRED_SIZE)
-                                                                                    .addComponent(label15, GroupLayout.PREFERRED_SIZE, 104, GroupLayout.PREFERRED_SIZE))
-                                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                                                            .addGroup(panel6Layout.createParallelGroup()
-                                                                                    .addComponent(txtRobotTime)
-                                                                                    .addGroup(panel6Layout.createSequentialGroup()
-                                                                                            .addGap(1, 1, 1)
-                                                                                            .addComponent(txtPauseTime, GroupLayout.PREFERRED_SIZE, 161, GroupLayout.PREFERRED_SIZE))
-                                                                                    .addComponent(txtExpireTime)
-                                                                                    .addGroup(panel6Layout.createSequentialGroup()
-                                                                                            .addComponent(txtDepthNum2, GroupLayout.PREFERRED_SIZE, 40, GroupLayout.PREFERRED_SIZE)
-                                                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                                                                            .addComponent(label19)
-                                                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                                                                            .addComponent(txtAvgValue2, GroupLayout.PREFERRED_SIZE, 48, GroupLayout.PREFERRED_SIZE)
-                                                                                            .addGap(1, 1, 1)
-                                                                                            .addComponent(label20, GroupLayout.PREFERRED_SIZE, 20, GroupLayout.PREFERRED_SIZE))
-                                                                                    .addComponent(rbAutoSell)))
-                                                                    .addGroup(panel6Layout.createSequentialGroup()
-                                                                            .addComponent(label10, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
-                                                                            .addGap(58, 58, 58)
-                                                                            .addComponent(label11, GroupLayout.PREFERRED_SIZE, 102, GroupLayout.PREFERRED_SIZE)
-                                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                                                            .addComponent(txtPriceDiff, GroupLayout.PREFERRED_SIZE, 57, GroupLayout.PREFERRED_SIZE)))
-                                                            .addGap(0, 0, Short.MAX_VALUE))))
-                    );
-                    panel6Layout.linkSize(SwingConstants.HORIZONTAL, new Component[]{txtExpireTime, txtPauseTime, txtRobotTime});
-                    panel6Layout.setVerticalGroup(
-                            panel6Layout.createParallelGroup()
-                                    .addGroup(panel6Layout.createSequentialGroup()
-                                            .addGap(15, 15, 15)
-                                            .addComponent(label5, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                            .addGap(10, 10, 10)
-                                            .addGroup(panel6Layout.createParallelGroup()
-                                                    .addComponent(label4, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(txtAmount, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                                            .addGap(14, 14, 14)
-                                            .addGroup(panel6Layout.createParallelGroup()
-                                                    .addComponent(label10, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(label11, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(txtPriceDiff, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                                            .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                                            .addGroup(panel6Layout.createParallelGroup()
-                                                    .addComponent(label12, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(txtRobotTime, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                                            .addGap(12, 12, 12)
-                                            .addGroup(panel6Layout.createParallelGroup()
-                                                    .addComponent(label15, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(txtPauseTime, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                                            .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                                            .addGroup(panel6Layout.createParallelGroup()
-                                                    .addComponent(label13, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(txtExpireTime, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                                            .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                                            .addGroup(panel6Layout.createParallelGroup()
-                                                    .addComponent(label14, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(rbAutoSell))
-                                            .addGap(18, 18, 18)
-                                            .addGroup(panel6Layout.createParallelGroup()
-                                                    .addComponent(label17, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(txtDepthNum2, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(label19, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(txtAvgValue2, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(label20, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE))
-                                            .addContainerGap(32, Short.MAX_VALUE))
+                        panel6Layout.createParallelGroup()
+                            .addGroup(panel6Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(panel6Layout.createParallelGroup()
                                     .addGroup(GroupLayout.Alignment.TRAILING, panel6Layout.createSequentialGroup()
-                                            .addContainerGap(15, Short.MAX_VALUE)
-                                            .addGroup(panel6Layout.createParallelGroup()
-                                                    .addComponent(rbMarketOrder)
-                                                    .addComponent(rbLimitOrder))
-                                            .addGap(320, 320, 320))
+                                        .addGroup(panel6Layout.createParallelGroup()
+                                            .addComponent(label5, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
+                                            .addComponent(label4, GroupLayout.PREFERRED_SIZE, 92, GroupLayout.PREFERRED_SIZE))
+                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 39, Short.MAX_VALUE)
+                                        .addGroup(panel6Layout.createParallelGroup()
+                                            .addComponent(txtAmount, GroupLayout.PREFERRED_SIZE, 166, GroupLayout.PREFERRED_SIZE)
+                                            .addGroup(panel6Layout.createSequentialGroup()
+                                                .addComponent(rbLimitOrder, GroupLayout.PREFERRED_SIZE, 77, GroupLayout.PREFERRED_SIZE)
+                                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                                .addComponent(rbMarketOrder)))
+                                        .addGap(20, 20, 20))
+                                    .addGroup(panel6Layout.createSequentialGroup()
+                                        .addGroup(panel6Layout.createParallelGroup()
+                                            .addComponent(label17, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
+                                            .addGroup(panel6Layout.createSequentialGroup()
+                                                .addGroup(panel6Layout.createParallelGroup()
+                                                    .addComponent(label14, GroupLayout.PREFERRED_SIZE, 128, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(label12, GroupLayout.PREFERRED_SIZE, 104, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(label13, GroupLayout.PREFERRED_SIZE, 104, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(label15, GroupLayout.PREFERRED_SIZE, 104, GroupLayout.PREFERRED_SIZE))
+                                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                                .addGroup(panel6Layout.createParallelGroup()
+                                                    .addComponent(txtRobotTime)
+                                                    .addGroup(panel6Layout.createSequentialGroup()
+                                                        .addGap(1, 1, 1)
+                                                        .addComponent(txtPauseTime, GroupLayout.PREFERRED_SIZE, 161, GroupLayout.PREFERRED_SIZE))
+                                                    .addComponent(txtExpireTime)
+                                                    .addGroup(panel6Layout.createSequentialGroup()
+                                                        .addComponent(txtDepthNum2, GroupLayout.PREFERRED_SIZE, 40, GroupLayout.PREFERRED_SIZE)
+                                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                                        .addComponent(label19)
+                                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                                        .addComponent(txtAvgValue2, GroupLayout.PREFERRED_SIZE, 48, GroupLayout.PREFERRED_SIZE)
+                                                        .addGap(1, 1, 1)
+                                                        .addComponent(label20, GroupLayout.PREFERRED_SIZE, 20, GroupLayout.PREFERRED_SIZE))
+                                                    .addComponent(rbAutoSell)))
+                                            .addGroup(panel6Layout.createSequentialGroup()
+                                                .addComponent(label10, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
+                                                .addGap(58, 58, 58)
+                                                .addComponent(label11, GroupLayout.PREFERRED_SIZE, 102, GroupLayout.PREFERRED_SIZE)
+                                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                                .addComponent(txtPriceDiff, GroupLayout.PREFERRED_SIZE, 57, GroupLayout.PREFERRED_SIZE)))
+                                        .addGap(0, 0, Short.MAX_VALUE))))
                     );
-                    panel6Layout.linkSize(SwingConstants.VERTICAL, new Component[]{txtExpireTime, txtPauseTime, txtRobotTime});
+                    panel6Layout.linkSize(SwingConstants.HORIZONTAL, new Component[] {txtExpireTime, txtPauseTime, txtRobotTime});
+                    panel6Layout.setVerticalGroup(
+                        panel6Layout.createParallelGroup()
+                            .addGroup(panel6Layout.createSequentialGroup()
+                                .addGap(15, 15, 15)
+                                .addComponent(label5, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                .addGap(10, 10, 10)
+                                .addGroup(panel6Layout.createParallelGroup()
+                                    .addComponent(label4, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtAmount, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                .addGap(14, 14, 14)
+                                .addGroup(panel6Layout.createParallelGroup()
+                                    .addComponent(label10, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(label11, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtPriceDiff, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addGroup(panel6Layout.createParallelGroup()
+                                    .addComponent(label12, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtRobotTime, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                .addGap(12, 12, 12)
+                                .addGroup(panel6Layout.createParallelGroup()
+                                    .addComponent(label15, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtPauseTime, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addGroup(panel6Layout.createParallelGroup()
+                                    .addComponent(label13, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtExpireTime, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addGroup(panel6Layout.createParallelGroup()
+                                    .addComponent(label14, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(rbAutoSell))
+                                .addGap(18, 18, 18)
+                                .addGroup(panel6Layout.createParallelGroup()
+                                    .addComponent(label17, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtDepthNum2, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(label19, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtAvgValue2, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(label20, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE))
+                                .addContainerGap(32, Short.MAX_VALUE))
+                            .addGroup(GroupLayout.Alignment.TRAILING, panel6Layout.createSequentialGroup()
+                                .addContainerGap(15, Short.MAX_VALUE)
+                                .addGroup(panel6Layout.createParallelGroup()
+                                    .addComponent(rbMarketOrder)
+                                    .addComponent(rbLimitOrder))
+                                .addGap(320, 320, 320))
+                    );
+                    panel6Layout.linkSize(SwingConstants.VERTICAL, new Component[] {txtExpireTime, txtPauseTime, txtRobotTime});
                 }
                 panel2.add(panel6);
                 panel6.setBounds(370, 5, 335, 385);
@@ -754,11 +756,11 @@ public class CoinBigPanel extends JPanel {
                     label6.setHorizontalAlignment(SwingConstants.LEFT);
 
                     //---- cbStrategy ----
-                    cbStrategy.setModel(new DefaultComboBoxModel<>(new String[]{
-                            "Avg",
-                            "Last",
-                            "Bid",
-                            "Mid"
+                    cbStrategy.setModel(new DefaultComboBoxModel<>(new String[] {
+                        "Avg",
+                        "Last",
+                        "Bid",
+                        "Mid"
                     }));
                     cbStrategy.addItemListener(e -> cbStrategyItemStateChanged(e));
 
@@ -795,29 +797,29 @@ public class CoinBigPanel extends JPanel {
                     GroupLayout panel7Layout = new GroupLayout(panel7);
                     panel7.setLayout(panel7Layout);
                     panel7Layout.setHorizontalGroup(
-                            panel7Layout.createParallelGroup()
+                        panel7Layout.createParallelGroup()
+                            .addGroup(panel7Layout.createSequentialGroup()
+                                .addGroup(panel7Layout.createParallelGroup()
                                     .addGroup(panel7Layout.createSequentialGroup()
-                                            .addGroup(panel7Layout.createParallelGroup()
-                                                    .addGroup(panel7Layout.createSequentialGroup()
-                                                            .addGap(15, 15, 15)
-                                                            .addComponent(label6, GroupLayout.PREFERRED_SIZE, 61, GroupLayout.PREFERRED_SIZE)
-                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                                                            .addComponent(cbStrategy, GroupLayout.PREFERRED_SIZE, 205, GroupLayout.PREFERRED_SIZE))
-                                                    .addGroup(panel7Layout.createSequentialGroup()
-                                                            .addContainerGap()
-                                                            .addComponent(panelAvg, GroupLayout.PREFERRED_SIZE, 284, GroupLayout.PREFERRED_SIZE)))
-                                            .addContainerGap(30, Short.MAX_VALUE))
+                                        .addGap(15, 15, 15)
+                                        .addComponent(label6, GroupLayout.PREFERRED_SIZE, 61, GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                        .addComponent(cbStrategy, GroupLayout.PREFERRED_SIZE, 205, GroupLayout.PREFERRED_SIZE))
+                                    .addGroup(panel7Layout.createSequentialGroup()
+                                        .addContainerGap()
+                                        .addComponent(panelAvg, GroupLayout.PREFERRED_SIZE, 284, GroupLayout.PREFERRED_SIZE)))
+                                .addContainerGap(30, Short.MAX_VALUE))
                     );
                     panel7Layout.setVerticalGroup(
-                            panel7Layout.createParallelGroup()
-                                    .addGroup(panel7Layout.createSequentialGroup()
-                                            .addContainerGap()
-                                            .addGroup(panel7Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                                    .addComponent(label6, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(cbStrategy, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                            .addComponent(panelAvg, GroupLayout.PREFERRED_SIZE, 40, GroupLayout.PREFERRED_SIZE)
-                                            .addContainerGap(52, Short.MAX_VALUE))
+                        panel7Layout.createParallelGroup()
+                            .addGroup(panel7Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(panel7Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                    .addComponent(label6, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(cbStrategy, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(panelAvg, GroupLayout.PREFERRED_SIZE, 40, GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap(52, Short.MAX_VALUE))
                     );
                 }
                 panel2.add(panel7);
@@ -827,12 +829,13 @@ public class CoinBigPanel extends JPanel {
                 lTrial.setText("-----------------");
                 lTrial.setForeground(Color.red);
                 lTrial.setHorizontalAlignment(SwingConstants.RIGHT);
+                lTrial.setVisible(false);
                 panel2.add(lTrial);
                 lTrial.setBounds(485, 405, 190, 28);
 
                 { // compute preferred size
                     Dimension preferredSize = new Dimension();
-                    for (int i = 0; i < panel2.getComponentCount(); i++) {
+                    for(int i = 0; i < panel2.getComponentCount(); i++) {
                         Rectangle bounds = panel2.getComponent(i).getBounds();
                         preferredSize.width = Math.max(bounds.x + bounds.width, preferredSize.width);
                         preferredSize.height = Math.max(bounds.y + bounds.height, preferredSize.height);
@@ -865,7 +868,7 @@ public class CoinBigPanel extends JPanel {
 
                 { // compute preferred size
                     Dimension preferredSize = new Dimension();
-                    for (int i = 0; i < panel1.getComponentCount(); i++) {
+                    for(int i = 0; i < panel1.getComponentCount(); i++) {
                         Rectangle bounds = panel1.getComponent(i).getBounds();
                         preferredSize.width = Math.max(bounds.x + bounds.width, preferredSize.width);
                         preferredSize.height = Math.max(bounds.y + bounds.height, preferredSize.height);
@@ -881,25 +884,23 @@ public class CoinBigPanel extends JPanel {
 
             //======== panel3 ========
             {
+                panel3.setMinimumSize(new Dimension(715, 445));
+                panel3.setPreferredSize(new Dimension(715, 445));
                 panel3.setLayout(null);
 
                 //======== scrollPane1 ========
                 {
 
-                    //---- textArea1 ----
-                    textArea1.setRows(12);
-                    textArea1.setLineWrap(true);
-                    textArea1.setText("\u8f6f\u4ef6\u7279\u6027\uff1a\n1\u3001\u63d0\u4f9b\u591a\u79cd\u7b56\u7565, \u65b9\u4fbf\u4e0d\u540c\u884c\u60c5\u4f7f\u7528\n2\u3001\u5bf9\u78b0\u4ea4\u6613\u65f6, \u5f53\u4e70\u5165\u4e00\u90e8\u5206,\u5356\u51fa\u5168\u91cf\u5931\u8d25\u65f6, \u8ba2\u5355\u5065\u5eb7\u68c0\u67e5\u7a0b\u5e8f\u4f1a\u6839\u636e\u8bbe\u5b9a\u7684\u5468\u671f\u68c0\u67e5, \u6709\u6210\u4ea4\u90e8\u5206\u7684\u5219\u4ee5\u884c\u60c5\u4ef7\u5356\u51fa, \u5feb\u901f\u8d44\u91d1\u56de\u6d41, \u6ca1\u6709\u6210\u4ea4\u7684\u5219\u53d6\u6d88\u6389\n3\u3001\u540c\u4e00\u4e2a\u6388\u6743\u7801\u591a\u53f7\u767b\u5f55\u65f6\uff0c\u53ea\u5141\u8bb8\u4e00\u4e2a\u5728\u7ebf, \u5982\u51fa\u73b0\u5f02\u5e38\u65f6\u8bf7\u7a0d\u501930S\t\n4\u3001\u5bf9\u540c\u4e00\u4e2a\u4ea4\u6613\u6240\u3001\u591a\u4e2a\u8d26\u53f7\u7684\u60c5\u51b5\uff0c\u76ee\u524d\u9700\u8981\u591a\u5f00\uff0c\u540e\u7eed\u589e\u52a0\u591a\u4efb\u52a1\u7ba1\u7406\n5\u3001\u4fee\u6539\u914d\u7f6e\u540e\uff0c\u8bf7\u5148\u6682\u505c\u4ea4\u6613\uff0c\u7136\u540e\u91cd\u65b0\u542f\u52a8\u751f\u6548\n\n\u53c2\u6570\u8bf4\u660e\uff1a\n1\u3001\u7b56\u7565\u8bbe\u7f6e\n(1) \u7b56\u7565\u7c7b\u578b\navg\uff1a\u6839\u636e\u4e70\u76d8\u3001\u4e70\u76d8\u76d8\u53e3\u6df1\u5ea6\u7684\u5747\u4ef7\u4e3a\u57fa\u51c6\u6765\u5224\u65ad\u662f\u5426\u8fbe\u5230\u4e0b\u5355\u6761\u4ef6(\u5f53\u76d8\u53e3\u5356\u51fa\u6302\u5355\u5747\u4ef7\u5c0f\u4e8e\u76d8\u53e3\u4e70\u5165\u6302\u5355\u5747\u4ef7\u65f6),\u76f8\u6bd4mid\u591a\u4e86\u4e00\u4e2a\u4ef7\u5dee\u5224\u65ad\n\nLast\uff1a\u4ee5\u6700\u65b0\u6210\u4ea4\u4ef7\u4e3a\u57fa\u51c6\u6765\u8ba1\u7b97\u4e70\u5356\u4ef7\u683c\uff0c\u5982\u6700\u65b0\u6210\u4ea4\u4ef7\u4e3a1234.05\uff0c\u8bbe\u7f6e\u4ef7\u5dee\u4e3a0.01\uff0c\u5219\u4e70\u5165\u4ef7\u548c\u5356\u51fa\u4ef7\u5206\u522b\u4e3a1234.06\u548c1234.04\uff0c\u5373\u4e70\u5165\u4ef7\u5927\u4e8e\u5356\u51fa\u4ef7\uff0c\u4e5f\u53ef\u8bbe\u7f6e\u4e3a-0.01\uff0c\u5219\u6b64\u65f6\u4e70\u5165\u4ef7\u548c\u5356\u51fa\u4ef7\u5206\u522b\u4e3a1234.04\u548c1234.06\uff08\u5efa\u8bae\u884c\u60c5\u7a33\u5b9a\u65f6\u91c7\u7528\uff1a\u56e0\u4e3a\u5f53\u5356\u5355\u63025\u5143\uff0c\u4e70\u5355\u63024\u5143\u3002\u82e5\u6700\u65b0\u4ef7\u4e3a5\uff0c\u90a3\u4e48\u4e0b5\u7684\u4e70\u5355\uff0c\u518d\u4e0b\u4e2a5\u7684\u5356\u5355\uff0c\u522b\u4eba5\u7684\u5356\u5355\u5148\u6392\u961f\uff0c\u6240\u4ee5\u4f60\u4e70\u8fdb\u4e86\u522b\u4eba\u7684\uff0c\u4f46\u5374\u5356\u4e0d\u51fa\u53bb\uff09\n\nBid\uff1a\u4ee5\u5356\u4e00\u4e3a\u4e70\u5165\u4ef7\uff0c\u4ee5\u4e70\u4e00\u4e3a\u5356\u51fa\u4ef7\u8fdb\u884c\u4ea4\u6613\uff0c\u53ea\u80fd\u9ad8\u4e70\u4f4e\u5356\uff0c\u4f46\u80fd\u5feb\u901f\u6210\u4ea4, \u4e0d\u540c\u7684\u4ea4\u6613\u5bf9\u9700\u8981\u8bbe\u5b9a\u4e0d\u540c\u7684\u503c(\u5bf9\u4e8eBTC_USDT\u800c\u8a00\uff0c\u5efa\u8bae\u8be5\u503c\u8bbe\u4e3a0.01)\uff0c\u5982\u4e70\u4e00\u4ef71234.01 \u5356\u4e00\u4ef71234.02\uff0c\u5982\u679c\u8bbe\u7f6e\u4ef7\u5dee\u4e3a0.01\uff0c\u5219\u6ee1\u8db3\u6761\u4ef6\u6267\u884c\u53cc\u5411\u4e0b\u5355\uff0c\u4e70\u5165\u4ef7\u548c\u5356\u51fa\u4ef7\u5206\u522b\u4e3a1234.02\u548c1234.01\uff0c\u5373\u53ef\u9a6c\u4e0a\u6210\u4ea4\uff0c\u8be5\u503c\u8bbe\u5b9a\u8d8a\u5927\u6761\u4ef6\u8d8a\u80fd\u6ee1\u8db3\uff0c\u6210\u4ea4\u6982\u7387\u8d8a\u5927\uff0c\u4f46\u4f1a\u4e8f\u635f\u4e00\u5b9a\u7684\u4ef7\u5dee\uff0c\u53cd\u4e4b\u4ea6\u7136\u3002\n\nMid\uff1a\u4ee5\u76d8\u53e3\u4e2d\u95f4\u4ef7\u4e3a\u57fa\u51c6\u6765\u8ba1\u7b97\u4e70\u5356\u4ef7\u683c\uff0c\u5982\u4e70\u4e00\u4ef71234.01,\u5356\u4e00\u4ef71234.06, \u4e2d\u95f4\u4ef7\u4e3a(1234.01+1234.06)/2=1234.035, \u5982\u679c\u8bbe\u7f6e\u4ef7\u5dee\u4e3a0.01,\u5219\u4e70\u5165\u4ef7\u4e3a1234.045,\u5356\u51fa\u4ef7\u4e3a1234.025\t\t\t\t\t\t\n\n(2) Avg\u6df1\u5ea6\u4e2a\u6570\uff1a\u7528\u4e8e\u8ba1\u7b97\u76d8\u53e3\u6302\u5355\u5747\u4ef7\u6240\u7528\u4e2a\u6570, 1-20\u4e4b\u95f4(coinbig\u57281-18)\t\n(3) Avg\u6df1\u5ea6\u6761\u4ef6\uff1a\u5f53\u76d8\u53e3\u5356\u51fa\u6302\u5355\u5747\u4ef7\u5c0f\u4e8e\u76d8\u53e3\u4e70\u5165\u6302\u5355\u5747\u4ef7(1+\u6df1\u5ea6\u6761\u4ef6)%\u500d\u65f6, \u53d1\u51fa\u4ea4\u6613\u6307\u4ee4\uff08\u4e0d\u540c\u4ea4\u6613\u5bf9\u9700\u8981\u9488\u5bf9\u5e01\u7279\u6027\u81ea\u884c\u8ba1\u7b97AVG_VALUE\u6bd4\u7387\uff09\n\u76d8\u53e3\u5356\u51fa\u6302\u5355\u5747\u4ef7\u4e3a11000, \u4e70\u5165\u6302\u5355\u5747\u4ef7\u4e3a9900, 11000>9900*1.015=10048.5, \u4ef7\u5dee\u592a\u5927\u4e0d\u53d1\u9001\u4ea4\u6613\u6307\u4ee4\u3002\n\u76d8\u53e3\u5356\u51fa\u6302\u5355\u5747\u4ef7\u4e3a10000, \u4e70\u5165\u6302\u5355\u5747\u4ef7\u4e3a9900, 10000<9900*1.015=10048.5, \u4ef7\u5dee\u5c0f\u53ef\u53d1\u9001\u4ea4\u6613\u6307\u4ee4\n\n2\u3001\u4ea4\u6613\u7c7b\u578b\uff1a\u9650\u4ef7\u5355\u6839\u636e\u4e0a\u9762\u7684\u7b56\u7565+\u4ef7\u5dee\u5f97\u51fa\uff0c\u5e02\u4ef7\u5355\u5219\u6839\u636e\u5e02\u573a\u884c\u60c5\n3\u3001\u5355\u7b14\u4ea4\u6613\u6570\u91cf\uff1a\u5e01\u6570\u91cf\t\n4\u3001\u4ef7\u5dee\u8bbe\u7f6e\n   \u4ef7\u5dee=\u4e70\u5165\u4e0b\u5355\u4ef7\u683c-\u5356\u51fa\u4e0b\u5355\u4ef7\u683c, \u82e5\u8981\u5feb\u901f\u6210\u4ea4\u5efa\u8bae\u9ad8\u4e70\u4f4e\u5356, \u8be5\u503c\u4e3a\u6b63\u65f6\u9ad8\u4e70\u4f4e\u5356, \u4e3a0\u65f6\u4e70\u5165\u548c\u5356\u51fa\u4ef7\u683c\u76f8\u540c, \u4e3a\u8d1f\u65f6\u4f4e\u4e70\u9ad8\u5356\n5\u3001\u4f5c\u4e1a\u5468\u671f\uff1a\u6bcf\u9694\u591a\u5c11\u79d2\u8fdb\u884c\u4e00\u6b21\u64ae\u5408\u4ea4\u6613\n6\u3001\u4ea4\u6613\u5ef6\u65f6\uff1a\u4e70\u5165\u3001\u5356\u51fa\u4ea4\u6613\u4e2d\u95f4\u7684\u5ef6\u65f6\uff0c\u7528\u4e8e\u4ea4\u6613\u6240API\u8c03\u7528\u9891\u7387\u9650\u5236\n7\u3001\u8ba2\u5355\u64a4\u9500\u5468\u671f\uff1a\u5df2\u4e0b\u5355\u672a\u5b8c\u5168\u6210\u4ea4\u7684\u8ba2\u5355\u7684\u5931\u6548\u65f6\u95f4\uff0c\u8d85\u8fc7\u8be5\u65f6\u95f4\uff0c\u673a\u5668\u4eba\u4f1a\u81ea\u52a8\u53d6\u6d88\u8be5\u8ba2\u5355\n8\u3001\u90e8\u5206\u6210\u4ea4\u5355\u81ea\u52a8\u5356\u51fa\uff1a\u4e70\u5165\u4e86\u90e8\u5206, \u5168\u91cf\u5356\u51fa\u5931\u8d25\u65f6, \u662f\u5426\u81ea\u52a8\u5356\u51fa\uff0c\u5feb\u901f\u56de\u6d41\u8d44\u91d1\n9\u3001\u505c\u6b62\u6316\u77ff\uff1a\u51e0\u5206\u949f\u4e4b\u5185\u51fa\u9519\u6b21\u6570\u8fbe\u5230\u591a\u5c11, \u505c\u6b62\u6316\u77ff\n10\u3001\u4e0d\u6316\u77ff\u65f6\uff0c\u9700\u8981\u624b\u5de5\u6682\u505c\n\n\u64cd\u4f5c\u5efa\u8bae\uff1a\n1\u3001\u5e01\u4ef7\u6025\u901f\u4e0b\u8dcc\u65f6, \u5c3d\u91cf\u4e0d\u8981\u5237\n2\u3001\u5c0f\u989d\u5feb\u901f\u6210\u4ea4\n3\u3001\u9002\u5f53\u7684\u4ea4\u6613\u7b56\u7565\n4\u3001\u81ea\u52a8\u6b62\u635f\n5\u3001\u9009\u62e9\u6bd4\u8f83\u7a33\u7684\u4ea4\u6613\u5bf9,\u6ce2\u52a8\u5c0f\u98ce\u9669\u5c0f\t\t\t\t\t\t");
-                    textArea1.setWrapStyleWord(true);
-                    textArea1.setEditable(false);
-                    scrollPane1.setViewportView(textArea1);
+                    //---- txtRemark ----
+                    txtRemark.setText("\u8f6f\u4ef6\u7279\u6027\uff1a\n1\u3001\u63d0\u4f9b\u591a\u79cd\u7b56\u7565, \u65b9\u4fbf\u4e0d\u540c\u884c\u60c5\u4f7f\u7528\n2\u3001\u5bf9\u78b0\u4ea4\u6613\u65f6, \u5f53\u4e70\u5165\u4e00\u90e8\u5206, \u5356\u51fa\u5168\u91cf\u5931\u8d25\u65f6, \u8ba2\u5355\u5065\u5eb7\u68c0\u67e5\u7a0b\u5e8f\u4f1a\u6839\u636e\u8bbe\u5b9a\u7684\u5468\u671f\u68c0\u67e5, \u6709\u6210\u4ea4\u90e8\u5206\u7684\u5219\u4ee5\u884c\u60c5\u4ef7\u5356\u51fa, \u5feb\u901f\u8d44\u91d1\u56de\u6d41, \u6ca1\u6709\u6210\u4ea4\u7684\u5219\u53d6\u6d88\u6389\n3\u3001\u5bf9\u540c\u4e00\u4e2a\u4ea4\u6613\u6240\u3001\u591a\u4e2a\u8d26\u53f7\u7684\u60c5\u51b5\uff0c\u76ee\u524d\u9700\u8981\u591a\u5f00(\u53ef\u4ee5\u65e0\u9650\u5f00)\uff0c\u540e\u7eed\u589e\u52a0\u591a\u4efb\u52a1\u7ba1\u7406\n4\u3001\u4fee\u6539\u914d\u7f6e\u540e\uff0c\u8bf7\u5148\u6682\u505c\u4ea4\u6613\uff0c\u7136\u540e\u91cd\u65b0\u542f\u52a8\u751f\u6548\n\n\u53c2\u6570\u8bf4\u660e\uff1a\n1\u3001\u7b56\u7565\u8bbe\u7f6e\n(1) \u7b56\u7565\u7c7b\u578b\navg\uff1a\u6839\u636e\u4e70\u76d8\u3001\u4e70\u76d8\u76d8\u53e3\u6df1\u5ea6\u7684\u5747\u4ef7\u4e3a\u57fa\u51c6\u6765\u5224\u65ad\u662f\u5426\u8fbe\u5230\u4e0b\u5355\u6761\u4ef6(\u5f53\u76d8\u53e3\u5356\u51fa\u6302\u5355\u5747\u4ef7\u5c0f\u4e8e\u76d8\u53e3\u4e70\u5165\u6302\u5355\u5747\u4ef7\u65f6),\u76f8\u6bd4mid\u591a\u4e86\u4e00\u4e2a\u4ef7\u5dee\u5224\u65ad\n\nLast\uff1a\u4ee5\u6700\u65b0\u6210\u4ea4\u4ef7\u4e3a\u57fa\u51c6\u6765\u8ba1\u7b97\u4e70\u5356\u4ef7\u683c\uff0c\u5982\u6700\u65b0\u6210\u4ea4\u4ef7\u4e3a1234.05\uff0c\u8bbe\u7f6e\u4ef7\u5dee\u4e3a0.01\uff0c\u5219\u4e70\u5165\u4ef7\u548c\u5356\u51fa\u4ef7\u5206\u522b\u4e3a1234.06\u548c1234.04\uff0c\u5373\u4e70\u5165\u4ef7\u5927\u4e8e\u5356\u51fa\u4ef7\uff0c\u4e5f\u53ef\u8bbe\u7f6e\u4e3a-0.01\uff0c\u5219\u6b64\u65f6\u4e70\u5165\u4ef7\u548c\u5356\u51fa\u4ef7\u5206\u522b\u4e3a1234.04\u548c1234.06\uff08\u5efa\u8bae\u884c\u60c5\u7a33\u5b9a\u65f6\u91c7\u7528\uff1a\u56e0\u4e3a\u5f53\u5356\u5355\u63025\u5143\uff0c\u4e70\u5355\u63024\u5143\u3002\u82e5\u6700\u65b0\u4ef7\u4e3a5\uff0c\u90a3\u4e48\u4e0b5\u7684\u4e70\u5355\uff0c\u518d\u4e0b\u4e2a5\u7684\u5356\u5355\uff0c\u522b\u4eba5\u7684\u5356\u5355\u5148\u6392\u961f\uff0c\u6240\u4ee5\u4f60\u4e70\u8fdb\u4e86\u522b\u4eba\u7684\uff0c\u4f46\u5374\u5356\u4e0d\u51fa\u53bb\uff09\n\nBid\uff1a\u4ee5\u5356\u4e00\u4e3a\u4e70\u5165\u4ef7\uff0c\u4ee5\u4e70\u4e00\u4e3a\u5356\u51fa\u4ef7\u8fdb\u884c\u4ea4\u6613\uff0c\u53ea\u80fd\u9ad8\u4e70\u4f4e\u5356\uff0c\u4f46\u80fd\u5feb\u901f\u6210\u4ea4, \u4e0d\u540c\u7684\u4ea4\u6613\u5bf9\u9700\u8981\u8bbe\u5b9a\u4e0d\u540c\u7684\u503c(\u5bf9\u4e8eBTC_USDT\u800c\u8a00\uff0c\u5efa\u8bae\u8be5\u503c\u8bbe\u4e3a0.01)\uff0c\u5982\u4e70\u4e00\u4ef71234.01 \u5356\u4e00\u4ef71234.02\uff0c\u5982\u679c\u8bbe\u7f6e\u4ef7\u5dee\u4e3a0.01\uff0c\u5219\u6ee1\u8db3\u6761\u4ef6\u6267\u884c\u53cc\u5411\u4e0b\u5355\uff0c\u4e70\u5165\u4ef7\u548c\u5356\u51fa\u4ef7\u5206\u522b\u4e3a1234.02\u548c1234.01\uff0c\u5373\u53ef\u9a6c\u4e0a\u6210\u4ea4\uff0c\u8be5\u503c\u8bbe\u5b9a\u8d8a\u5927\u6761\u4ef6\u8d8a\u80fd\u6ee1\u8db3\uff0c\u6210\u4ea4\u6982\u7387\u8d8a\u5927\uff0c\u4f46\u4f1a\u4e8f\u635f\u4e00\u5b9a\u7684\u4ef7\u5dee\uff0c\u53cd\u4e4b\u4ea6\u7136\u3002\n\nMid\uff1a\u4ee5\u76d8\u53e3\u4e2d\u95f4\u4ef7\u4e3a\u57fa\u51c6\u6765\u8ba1\u7b97\u4e70\u5356\u4ef7\u683c\uff0c\u5982\u4e70\u4e00\u4ef71234.01,\u5356\u4e00\u4ef71234.06, \u4e2d\u95f4\u4ef7\u4e3a(1234.01+1234.06)/2=1234.035, \u5982\u679c\u8bbe\u7f6e\u4ef7\u5dee\u4e3a0.01,\u5219\u4e70\u5165\u4ef7\u4e3a1234.045,\u5356\u51fa\u4ef7\u4e3a1234.025\t\t\t\t\t\t\n\n(2) Avg\u6df1\u5ea6\u4e2a\u6570\uff1a\u7528\u4e8e\u8ba1\u7b97\u76d8\u53e3\u6302\u5355\u5747\u4ef7\u6240\u7528\u4e2a\u6570, 1-20\u4e4b\u95f4(coinbig\u57281-18)\t\n(3) Avg\u6df1\u5ea6\u6761\u4ef6\uff1a\u5f53\u76d8\u53e3\u5356\u51fa\u6302\u5355\u5747\u4ef7\u5c0f\u4e8e\u76d8\u53e3\u4e70\u5165\u6302\u5355\u5747\u4ef7(1+\u6df1\u5ea6\u6761\u4ef6)%\u500d\u65f6, \u53d1\u51fa\u4ea4\u6613\u6307\u4ee4\uff08\u4e0d\u540c\u4ea4\u6613\u5bf9\u9700\u8981\u9488\u5bf9\u5e01\u7279\u6027\u81ea\u884c\u8ba1\u7b97AVG_VALUE\u6bd4\u7387\uff09\n\u76d8\u53e3\u5356\u51fa\u6302\u5355\u5747\u4ef7\u4e3a11000, \u4e70\u5165\u6302\u5355\u5747\u4ef7\u4e3a9900, 11000>9900*1.015=10048.5, \u4ef7\u5dee\u592a\u5927\u4e0d\u53d1\u9001\u4ea4\u6613\u6307\u4ee4\u3002\n\u76d8\u53e3\u5356\u51fa\u6302\u5355\u5747\u4ef7\u4e3a10000, \u4e70\u5165\u6302\u5355\u5747\u4ef7\u4e3a9900, 10000<9900*1.015=10048.5, \u4ef7\u5dee\u5c0f\u53ef\u53d1\u9001\u4ea4\u6613\u6307\u4ee4\n\n2\u3001\u4ea4\u6613\u7c7b\u578b\uff1a\u9650\u4ef7\u5355\u6839\u636e\u4e0a\u9762\u7684\u7b56\u7565+\u4ef7\u5dee\u5f97\u51fa\uff0c\u5e02\u4ef7\u5355\u5219\u6839\u636e\u5e02\u573a\u884c\u60c5\n3\u3001\u5355\u7b14\u4ea4\u6613\u6570\u91cf\uff1a\u5e01\u6570\u91cf\t\n4\u3001\u4ef7\u5dee\u8bbe\u7f6e\n   \u4ef7\u5dee=\u4e70\u5165\u4e0b\u5355\u4ef7\u683c-\u5356\u51fa\u4e0b\u5355\u4ef7\u683c, \u82e5\u8981\u5feb\u901f\u6210\u4ea4\u5efa\u8bae\u9ad8\u4e70\u4f4e\u5356, \u8be5\u503c\u4e3a\u6b63\u65f6\u9ad8\u4e70\u4f4e\u5356, \u4e3a0\u65f6\u4e70\u5165\u548c\u5356\u51fa\u4ef7\u683c\u76f8\u540c, \u4e3a\u8d1f\u65f6\u4f4e\u4e70\u9ad8\u5356\n5\u3001\u4f5c\u4e1a\u5468\u671f\uff1a\u6bcf\u9694\u591a\u5c11\u79d2\u8fdb\u884c\u4e00\u6b21\u64ae\u5408\u4ea4\u6613\n6\u3001\u4ea4\u6613\u5ef6\u65f6\uff1a\u4e70\u5165\u3001\u5356\u51fa\u4ea4\u6613\u4e2d\u95f4\u7684\u5ef6\u65f6\uff0c\u7528\u4e8e\u4ea4\u6613\u6240API\u8c03\u7528\u9891\u7387\u9650\u5236\n7\u3001\u8ba2\u5355\u53d6\u6d88\u5468\u671f\n   \u8ddf\u968f\u4f5c\u4e1a\u5468\u671f\u5b9a\u65f6\u68c0\u67e5((\u7709\u7b14\u8ba2\u5355\u8d85\u8fc7\u8be5\u65f6\u6548\u8bbe\u5b9a\u5219\u4e3a\u5931\u6548\u8ba2\u5355))\n   \u5df2\u4e0b\u5355\u672a\u6210\u4ea4\u7684\u5931\u6548\u8ba2\u5355\u81ea\u52a8\u53d6\u6d88\n   \u5df2\u4e0b\u5355\u53ea\u6210\u4ea4\u4e86\u4e00\u90e8\u5206\u7684\u5931\u6548\u8ba2\u5355\u81ea\u52a8\u53d6\u6d88\n8\u3001\u90e8\u5206\u6210\u4ea4\u5355\u81ea\u52a8\u5356\u51fa\uff1a\u4e70\u5165\u4e86\u90e8\u5206, \u5168\u91cf\u5356\u51fa\u5931\u8d25\u65f6, \u662f\u5426\u81ea\u52a8\u5356\u51fa\uff0c\u5feb\u901f\u56de\u6d41\u8d44\u91d1\n9\u3001\u505c\u6b62\u6316\u77ff\uff1a\u51e0\u5206\u949f\u4e4b\u5185\u51fa\u9519\u6b21\u6570\u8fbe\u5230\u591a\u5c11, \u505c\u6b62\u6316\u77ff\n10\u3001\u4e0d\u6316\u77ff\u65f6\uff0c\u9700\u8981\u624b\u5de5\u6682\u505c\n\n\u64cd\u4f5c\u5efa\u8bae\uff1a\n1\u3001\u5e01\u4ef7\u6025\u901f\u4e0b\u8dcc\u65f6, \u5c3d\u91cf\u4e0d\u8981\u5237\n2\u3001\u5c0f\u989d\u5feb\u901f\u6210\u4ea4\n3\u3001\u9002\u5f53\u7684\u4ea4\u6613\u7b56\u7565\n4\u3001\u81ea\u52a8\u6b62\u635f\n5\u3001\u9009\u62e9\u6bd4\u8f83\u7a33\u7684\u4ea4\u6613\u5bf9,\u6ce2\u52a8\u5c0f\u98ce\u9669\u5c0f\n\n");
+                    scrollPane1.setViewportView(txtRemark);
                 }
                 panel3.add(scrollPane1);
                 scrollPane1.setBounds(5, 0, 705, 445);
 
                 { // compute preferred size
                     Dimension preferredSize = new Dimension();
-                    for (int i = 0; i < panel3.getComponentCount(); i++) {
+                    for(int i = 0; i < panel3.getComponentCount(); i++) {
                         Rectangle bounds = panel3.getComponent(i).getBounds();
                         preferredSize.width = Math.max(bounds.x + bounds.width, preferredSize.width);
                         preferredSize.height = Math.max(bounds.y + bounds.height, preferredSize.height);
@@ -916,11 +917,11 @@ public class CoinBigPanel extends JPanel {
             tabbedPane1.setSelectedIndex(0);
         }
         add(tabbedPane1);
-        tabbedPane1.setBounds(0, 0, 730, 490);
+        tabbedPane1.setBounds(0, 0, 720, 490);
 
         { // compute preferred size
             Dimension preferredSize = new Dimension();
-            for (int i = 0; i < getComponentCount(); i++) {
+            for(int i = 0; i < getComponentCount(); i++) {
                 Rectangle bounds = getComponent(i).getBounds();
                 preferredSize.width = Math.max(bounds.x + bounds.width, preferredSize.width);
                 preferredSize.height = Math.max(bounds.y + bounds.height, preferredSize.height);
@@ -996,6 +997,6 @@ public class CoinBigPanel extends JPanel {
     private JTextPane txtLog;
     private JPanel panel3;
     private JScrollPane scrollPane1;
-    private JTextArea textArea1;
+    private JTextPane txtRemark;
     // JFormDesigner - End of variables declaration  //GEN-END:variables
 }
