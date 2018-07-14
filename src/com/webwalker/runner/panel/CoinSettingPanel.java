@@ -12,69 +12,91 @@ import java.util.Timer;
 import java.util.TimerTask;
 import javax.swing.*;
 import javax.swing.border.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.plaf.TextUI;
 
-import com.webwalker.adapter.controller.coinbig.CoinBigController;
+import com.webwalker.adapter.controller.AbsController;
 import com.webwalker.adapter.controller.coinbig.model.SymbolsResult;
+import com.webwalker.adapter.strategy.StrategyFactory;
 import com.webwalker.core.auth.AuthResolver;
-import com.webwalker.core.config.ConfigItem;
-import com.webwalker.core.config.ConfigResolver;
-import com.webwalker.core.config.PlatformType;
-import com.webwalker.core.config.StrategyType;
+import com.webwalker.core.config.*;
 import com.webwalker.core.utility.*;
-import com.webwalker.main.CoinGodRunner;
-import javafx.application.Platform;
+import com.webwalker.runner.task.TaskController;
 
 /**
  * @author xujian
  */
-public class CoinBigPanel extends JPanel {
-    private final String platform = "CoinBig";
-    private CoinBigController controller = new CoinBigController();
-    private ConfigItem config = new ConfigItem();
+public class CoinSettingPanel extends JPanel {
+    private String platform;
+    private AbsController controller;
     private Timer timer;
+    private TaskParams params;
     private List<String> logs = new ArrayList<>();
     private volatile int logCount;
     private static Object lockObj = new Object();
+    private static CoinSettingPanel instance = null;
 
-    public CoinBigPanel() {
+    public static CoinSettingPanel getInstance() {
+        if (instance == null) {
+            instance = new CoinSettingPanel();
+            instance.setVisible(false);
+        }
+        return instance;
+    }
+
+    public CoinSettingPanel() {
         initComponents();
     }
 
-    private void thisComponentAdded(ContainerEvent e) {
-        init();
+    public void preInit(String platform, String key) {
+        this.platform = platform;
+        this.params = null;
+        if (!StringUtil.isEmpty(key)) {
+            TaskParams params = TaskController.getTask(key);
+            this.params = params;
+            this.controller = StrategyFactory.getInstance().getController(platform, params);
+        } else {
+            this.controller = StrategyFactory.getInstance().getController(platform, null);
+        }
+    }
+
+    public void reset() {
+        TaskParams resetParam = new TaskParams();
+        txtAccessKey.setText(resetParam.accessKey);
+        txtSecretKey.setText(resetParam.secretKey);
+        txtAuthCode.setText(resetParam.authCode);
     }
 
     private void init() {
-        Logger.setCallback(new ICallback<String>() {
+        getConfig();
+        Logger.setCallback(new ILogCallback<String>() {
             @Override
-            public void action(String log) {
+            public void action(String key, String log) {
                 synchronized (lockObj) {
-                    logs.add(log);
-                    if (logCount > 100) {
-                        logs.remove(0);
+                    //只显示跟自己有关的交易日志
+                    if (params != null && params.accessKey.toLowerCase().equals(key.toLowerCase())) {
+                        logs.add(log);
+                        if (logCount > 100) {
+                            logs.remove(0);
+                        }
+
+                        txtLog.setText(txtLog.getText() + "\r\n" + log);
+                        txtLog.setSelectionStart(txtLog.getText().length());
+                        JScrollBar vertical = scrollPane2.getVerticalScrollBar();
+                        vertical.setValue(vertical.getMaximum());
+
+                        logCount++;
                     }
-
-                    txtLog.setText(txtLog.getText() + "\r\n" + log);
-                    txtLog.setSelectionStart(txtLog.getText().length());
-                    JScrollBar vertical = scrollPane2.getVerticalScrollBar();
-                    vertical.setValue(vertical.getMaximum());
-
-                    logCount++;
                 }
             }
         });
-        getConfig();
         timer = TimeUtil.executeAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                if (config != null) {
-                    checkAuthCode(config.authCode);
+                if (params != null) {
+                    checkAuthCode(params.authCode);
                 }
             }
         }, 1000);
+        txtLog.setText("");
         txtRemark.setCaretPosition(0);
     }
 
@@ -96,13 +118,9 @@ public class CoinBigPanel extends JPanel {
     }
 
     private boolean saveConfig() {
-        ConfigItem item = new ConfigItem();
-        item.platform = PlatformType.CoinBig.name();
+        TaskParams item = new TaskParams();
         item.accessKey = txtAccessKey.getText();
         item.secretKey = txtSecretKey.getText();
-        /*if (!StringUtil.isEmpty(item.secretKey)) {
-            item.secretKey = DesEncrypt.encrypt(item.secretKey);
-        }*/
         item.authCode = txtAuthCode.getText();
         item.symbolIndex = radioButton1.isSelected() ? 0 : 0;
         if (cbSymbol.getSelectedItem() != null) {
@@ -121,36 +139,45 @@ public class CoinBigPanel extends JPanel {
         item.pauseTime = StringUtil.getLong(txtPauseTime.getText());
         item.expireTime = StringUtil.getInt(txtExpireTime.getText());
         item.partSell = rbAutoSell.isSelected() ? 1 : 0;
-
         if (!check(item)) {
             return false;
         }
+        //新增时使用
+        params = item;
+        controller.setParams(params);
 
-        String json = JsonUtil.toJson(item);
-        String path = getConfigPath(item.platform);
-        FileUtil.writeFile(json, path, false);
-        ConfigResolver.configPath = path;
+        //找出原有的更新掉
+        ConfigItem c = ConfigResolver.getConfig(platform);
+        boolean existed = false;
+        if (c != null) {
+            TaskParams temp = null;
+            for (TaskParams p : c.configs) {
+                if (p.accessKey.toLowerCase().equals(item.accessKey.toLowerCase())) {
+                    temp = p;
+                    existed = true;
+                }
+            }
+            if (temp != null) {
+                c.configs.remove(temp);
+                c.configs.add(item);
+            }
+        }
+        if (c == null) {
+            c = new ConfigItem();
+            c.configs = new ArrayList<>();
+            c.configs.add(item);
+        } else if (!existed) {
+            c.configs.add(item);
+        }
+        ConfigResolver.saveConfig(platform, c);
         return true;
-    }
-
-    private String getConfigPath(String platform) {
-        String path = ConfigResolver.getProjectPath() + "/" + platform + ".json";
-        //windows系统
-        path = "c:\\CoinGod\\" + platform + ".json";
-        //path = "/Users/xujian/GitHub/CoinGodRunner/lib/CoinBig.json";
-        //Logger.d(path);
-        return path;
     }
 
     private void showMessage(String params) {
         JOptionPane.showMessageDialog(this, "错误: " + params);
     }
 
-    private void showTip(String params) {
-        JOptionPane.showMessageDialog(this, params);
-    }
-
-    private boolean check(ConfigItem item) {
+    private boolean check(TaskParams item) {
         if (StringUtil.isEmpty(item.accessKey)) {
             showMessage("accessKey");
             return false;
@@ -183,41 +210,35 @@ public class CoinBigPanel extends JPanel {
     }
 
     private void getConfig() {
-        String path = getConfigPath(platform);
-        String json = FileUtil.readFile(path);
-        config = JsonUtil.fromJson(json, ConfigItem.class);
-        if (config == null) return;
-        txtAccessKey.setText(config.accessKey);
-        txtSecretKey.setText(config.secretKey);
-        /*if (!StringUtil.isEmpty(config.secretKey)) {
-            txtSecretKey.setText(DesEncrypt.decrypt(config.secretKey));
-        }*/
-        txtAuthCode.setText(config.authCode);
-        if (config.symbolIndex == 0) {
+        if (params == null) return;
+        txtAccessKey.setText(params.accessKey);
+        txtSecretKey.setText(params.secretKey);
+        txtAuthCode.setText(params.authCode);
+        if (params.symbolIndex == 0) {
             radioButton1.setSelected(true);
         }
 
-        cbStrategy.setSelectedItem(config.strategyType);
-        if (config.strategyType.toLowerCase().equals(StrategyType.Avg.getType())) {
+        cbStrategy.setSelectedItem(params.strategyType);
+        if (params.strategyType.toLowerCase().equals(StrategyType.Avg.getType())) {
             panelAvg.setVisible(true);
         } else {
             panelAvg.setVisible(false);
         }
 
-        txtDepthNum.setText(config.depthNum + "");
-        txtAvgValue.setText(config.avgValue + "");
-        if (config.limitOrder()) {
+        txtDepthNum.setText(params.depthNum + "");
+        txtAvgValue.setText(params.avgValue + "");
+        if (params.limitOrder()) {
             rbLimitOrder.setSelected(true);
         } else {
             rbMarketOrder.setSelected(true);
         }
-        txtAmount.setText(config.amount + "");
-        txtPriceDiff.setText(config.priceDiff + "");
-        txtRobotTime.setText(config.robotTime + "");
-        txtPauseTime.setText(config.pauseTime + "");
-        txtExpireTime.setText(config.expireTime + "");
+        txtAmount.setText(params.amount + "");
+        txtPriceDiff.setText(params.priceDiff + "");
+        txtRobotTime.setText(params.robotTime + "");
+        txtPauseTime.setText(params.pauseTime + "");
+        txtExpireTime.setText(params.expireTime + "");
 
-        if (config.partSell == 1) {
+        if (params.partSell == 1) {
             rbAutoSell.setSelected(true);
         } else {
             rbAutoSell.setSelected(false);
@@ -249,14 +270,17 @@ public class CoinBigPanel extends JPanel {
 
     private void radioButton1ItemStateChanged(ItemEvent e) {
         if (e.getStateChange() == ItemEvent.SELECTED) {
+            TaskParams param = new TaskParams();
+            param.accessKey = txtAccessKey.getText();
+            controller.setParams(param);
             getSymbols(radioButton1.getText(), new ICallback<List<String>>() {
                 @Override
                 public void action(List<String> o) {
                     for (String s : o) {
                         cbSymbol.addItem(s);
                     }
-                    if (config != null && !StringUtil.isEmpty(config.symbolValue)) {
-                        cbSymbol.setSelectedItem(config.symbolValue);
+                    if (params != null && !StringUtil.isEmpty(params.symbolValue)) {
+                        cbSymbol.setSelectedItem(params.symbolValue);
                     }
                 }
             });
@@ -265,35 +289,32 @@ public class CoinBigPanel extends JPanel {
 
     private void btnStartMousePressed(MouseEvent e) {
         if (saveConfig()) {
-            if (!AuthResolver.isValidCode(config.authCode)) {
-                showMessage("无效的授权码!");
-                return;
-            }
-            CoinGodRunner.start();
-            showTip("机器人已启动!");
+            TaskController.start(this, platform, params.accessKey, params.authCode);
         }
     }
 
     private void btnPauseMousePressed(MouseEvent e) {
-        CoinGodRunner.pause();
-        showTip("机器人已停止!");
+        TaskController.pause(this, platform, params.accessKey);
+        TaskController.showMessage(this, "机器人已停止!");
     }
 
     private void txtAuthCodeKeyPressed(KeyEvent e) {
-        if (config != null) {
-            config.authCode = txtAuthCode.getText();
-            checkAuthCode(config.authCode);
+        if (params != null) {
+            params.authCode = txtAuthCode.getText();
+            checkAuthCode(params.authCode);
         }
     }
 
+    private void thisComponentAdded(ContainerEvent e) {
+
+    }
+
     private void thisComponentHidden(ComponentEvent e) {
-//        if (timer!=null) {
-//            timer.cancel();
-//        }
     }
 
     private void thisComponentShown(ComponentEvent e) {
-
+        reset();
+        init();
     }
 
     private void cbStrategyItemStateChanged(ItemEvent e) {
@@ -307,6 +328,12 @@ public class CoinBigPanel extends JPanel {
         }
     }
 
+    private void btnSaveMousePressed(MouseEvent e) {
+        if (saveConfig()) {
+            TaskController.showMessage(this, "保存成功");
+        }
+    }
+
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         tabbedPane1 = new JTabbedPane();
@@ -317,7 +344,7 @@ public class CoinBigPanel extends JPanel {
         txtAccessKey = new JTextField();
         label7 = new JLabel();
         txtAuthCode = new JTextField();
-        txtSecretKey = new JPasswordField();
+        txtSecretKey = new JTextField();
         panel5 = new JPanel();
         radioButton1 = new JRadioButton();
         radioButton2 = new JRadioButton();
@@ -358,6 +385,7 @@ public class CoinBigPanel extends JPanel {
         label9 = new JLabel();
         txtAvgValue = new JTextField();
         lTrial = new JLabel();
+        btnSave = new JButton();
         panel1 = new JPanel();
         scrollPane2 = new JScrollPane();
         txtLog = new JTextPane();
@@ -369,17 +397,12 @@ public class CoinBigPanel extends JPanel {
         setPreferredSize(new Dimension(720, 445));
         setMinimumSize(new Dimension(720, 445));
         setMaximumSize(new Dimension(720, 445));
-        addContainerListener(new ContainerAdapter() {
-            @Override
-            public void componentAdded(ContainerEvent e) {
-                thisComponentAdded(e);
-            }
-        });
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentHidden(ComponentEvent e) {
                 thisComponentHidden(e);
             }
+
             @Override
             public void componentShown(ComponentEvent e) {
                 thisComponentShown(e);
@@ -430,43 +453,48 @@ public class CoinBigPanel extends JPanel {
 
                     //---- txtSecretKey ----
                     txtSecretKey.setHorizontalAlignment(SwingConstants.LEFT);
-                    txtSecretKey.setMaximumSize(new Dimension(12, 26));
+                    txtSecretKey.setCursor(Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR));
 
                     GroupLayout panel4Layout = new GroupLayout(panel4);
                     panel4.setLayout(panel4Layout);
                     panel4Layout.setHorizontalGroup(
-                        panel4Layout.createParallelGroup()
-                            .addGroup(panel4Layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addGroup(panel4Layout.createParallelGroup()
-                                    .addComponent(label1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(label2, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(label7, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addGroup(panel4Layout.createParallelGroup()
-                                    .addComponent(txtAccessKey, GroupLayout.PREFERRED_SIZE, 220, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(txtSecretKey, GroupLayout.PREFERRED_SIZE, 119, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(txtAuthCode, GroupLayout.PREFERRED_SIZE, 220, GroupLayout.PREFERRED_SIZE))
-                                .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            panel4Layout.createParallelGroup()
+                                    .addGroup(panel4Layout.createSequentialGroup()
+                                            .addContainerGap()
+                                            .addGroup(panel4Layout.createParallelGroup()
+                                                    .addGroup(panel4Layout.createSequentialGroup()
+                                                            .addGroup(panel4Layout.createParallelGroup()
+                                                                    .addComponent(label1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                                    .addComponent(label7, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE))
+                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                                            .addGroup(panel4Layout.createParallelGroup()
+                                                                    .addComponent(txtAccessKey, GroupLayout.PREFERRED_SIZE, 220, GroupLayout.PREFERRED_SIZE)
+                                                                    .addComponent(txtAuthCode, GroupLayout.PREFERRED_SIZE, 220, GroupLayout.PREFERRED_SIZE))
+                                                            .addContainerGap(12, Short.MAX_VALUE))
+                                                    .addGroup(panel4Layout.createSequentialGroup()
+                                                            .addComponent(label2, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
+                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                                            .addComponent(txtSecretKey, GroupLayout.PREFERRED_SIZE, 220, GroupLayout.PREFERRED_SIZE)
+                                                            .addContainerGap(12, Short.MAX_VALUE))))
                     );
-                    panel4Layout.linkSize(SwingConstants.HORIZONTAL, new Component[] {txtAccessKey, txtAuthCode, txtSecretKey});
+                    panel4Layout.linkSize(SwingConstants.HORIZONTAL, new Component[]{txtAccessKey, txtAuthCode});
                     panel4Layout.setVerticalGroup(
-                        panel4Layout.createParallelGroup()
-                            .addGroup(GroupLayout.Alignment.TRAILING, panel4Layout.createSequentialGroup()
-                                .addGroup(panel4Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                    .addComponent(label1, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(txtAccessKey, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 12, Short.MAX_VALUE)
-                                .addGroup(panel4Layout.createParallelGroup()
-                                    .addComponent(label2, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(txtSecretKey, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                .addGroup(panel4Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                    .addComponent(label7, GroupLayout.PREFERRED_SIZE, 24, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(txtAuthCode, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                                .addGap(14, 14, 14))
+                            panel4Layout.createParallelGroup()
+                                    .addGroup(GroupLayout.Alignment.TRAILING, panel4Layout.createSequentialGroup()
+                                            .addGroup(panel4Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                                    .addComponent(label1, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(txtAccessKey, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                            .addGroup(panel4Layout.createParallelGroup()
+                                                    .addComponent(label2, GroupLayout.Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(txtSecretKey, GroupLayout.Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 12, Short.MAX_VALUE)
+                                            .addGroup(panel4Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                                    .addComponent(label7, GroupLayout.PREFERRED_SIZE, 24, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(txtAuthCode, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                            .addGap(14, 14, 14))
                     );
-                    panel4Layout.linkSize(SwingConstants.VERTICAL, new Component[] {txtAccessKey, txtAuthCode, txtSecretKey});
+                    panel4Layout.linkSize(SwingConstants.VERTICAL, new Component[]{txtAccessKey, txtAuthCode});
                 }
                 panel2.add(panel4);
                 panel4.setBounds(20, 5, 335, 140);
@@ -495,41 +523,41 @@ public class CoinBigPanel extends JPanel {
                     GroupLayout panel5Layout = new GroupLayout(panel5);
                     panel5.setLayout(panel5Layout);
                     panel5Layout.setHorizontalGroup(
-                        panel5Layout.createParallelGroup()
-                            .addGroup(panel5Layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addGroup(panel5Layout.createParallelGroup()
+                            panel5Layout.createParallelGroup()
                                     .addGroup(panel5Layout.createSequentialGroup()
-                                        .addComponent(radioButton1, GroupLayout.PREFERRED_SIZE, 67, GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(radioButton2, GroupLayout.PREFERRED_SIZE, 58, GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(radioButton3, GroupLayout.PREFERRED_SIZE, 58, GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                        .addComponent(radioButton4, GroupLayout.PREFERRED_SIZE, 64, GroupLayout.PREFERRED_SIZE))
-                                    .addGroup(panel5Layout.createSequentialGroup()
-                                        .addComponent(label3, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(cbSymbol, GroupLayout.PREFERRED_SIZE, 205, GroupLayout.PREFERRED_SIZE)))
-                                .addContainerGap(31, Short.MAX_VALUE))
+                                            .addContainerGap()
+                                            .addGroup(panel5Layout.createParallelGroup()
+                                                    .addGroup(panel5Layout.createSequentialGroup()
+                                                            .addComponent(radioButton1, GroupLayout.PREFERRED_SIZE, 67, GroupLayout.PREFERRED_SIZE)
+                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                                            .addComponent(radioButton2, GroupLayout.PREFERRED_SIZE, 58, GroupLayout.PREFERRED_SIZE)
+                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                                            .addComponent(radioButton3, GroupLayout.PREFERRED_SIZE, 58, GroupLayout.PREFERRED_SIZE)
+                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                            .addComponent(radioButton4, GroupLayout.PREFERRED_SIZE, 64, GroupLayout.PREFERRED_SIZE))
+                                                    .addGroup(panel5Layout.createSequentialGroup()
+                                                            .addComponent(label3, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
+                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                                            .addComponent(cbSymbol, GroupLayout.PREFERRED_SIZE, 205, GroupLayout.PREFERRED_SIZE)))
+                                            .addContainerGap(31, Short.MAX_VALUE))
                     );
-                    panel5Layout.linkSize(SwingConstants.HORIZONTAL, new Component[] {radioButton1, radioButton2, radioButton3, radioButton4});
+                    panel5Layout.linkSize(SwingConstants.HORIZONTAL, new Component[]{radioButton1, radioButton2, radioButton3, radioButton4});
                     panel5Layout.setVerticalGroup(
-                        panel5Layout.createParallelGroup()
-                            .addGroup(panel5Layout.createSequentialGroup()
-                                .addGap(18, 18, 18)
-                                .addGroup(panel5Layout.createParallelGroup()
-                                    .addComponent(radioButton4)
-                                    .addComponent(radioButton3)
-                                    .addComponent(radioButton2)
-                                    .addComponent(radioButton1))
-                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                .addGroup(panel5Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                    .addComponent(cbSymbol, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(label3, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE))
-                                .addContainerGap(13, Short.MAX_VALUE))
+                            panel5Layout.createParallelGroup()
+                                    .addGroup(panel5Layout.createSequentialGroup()
+                                            .addGap(18, 18, 18)
+                                            .addGroup(panel5Layout.createParallelGroup()
+                                                    .addComponent(radioButton4)
+                                                    .addComponent(radioButton3)
+                                                    .addComponent(radioButton2)
+                                                    .addComponent(radioButton1))
+                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                            .addGroup(panel5Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                                    .addComponent(cbSymbol, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(label3, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE))
+                                            .addContainerGap(13, Short.MAX_VALUE))
                     );
-                    panel5Layout.linkSize(SwingConstants.VERTICAL, new Component[] {radioButton1, radioButton2, radioButton3, radioButton4});
+                    panel5Layout.linkSize(SwingConstants.VERTICAL, new Component[]{radioButton1, radioButton2, radioButton3, radioButton4});
                 }
                 panel2.add(panel5);
                 panel5.setBounds(20, 155, 335, 115);
@@ -543,7 +571,7 @@ public class CoinBigPanel extends JPanel {
                     }
                 });
                 panel2.add(btnStart);
-                btnStart.setBounds(255, 400, 100, 40);
+                btnStart.setBounds(190, 400, 100, 40);
 
                 //---- btnPause ----
                 btnPause.setText("\u6682\u505c");
@@ -554,7 +582,7 @@ public class CoinBigPanel extends JPanel {
                     }
                 });
                 panel2.add(btnPause);
-                btnPause.setBounds(370, 400, 100, 40);
+                btnPause.setBounds(305, 400, 100, 40);
 
                 //======== panel6 ========
                 {
@@ -647,102 +675,102 @@ public class CoinBigPanel extends JPanel {
                     GroupLayout panel6Layout = new GroupLayout(panel6);
                     panel6.setLayout(panel6Layout);
                     panel6Layout.setHorizontalGroup(
-                        panel6Layout.createParallelGroup()
-                            .addGroup(panel6Layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addGroup(panel6Layout.createParallelGroup()
-                                    .addGroup(GroupLayout.Alignment.TRAILING, panel6Layout.createSequentialGroup()
-                                        .addGroup(panel6Layout.createParallelGroup()
-                                            .addComponent(label5, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
-                                            .addComponent(label4, GroupLayout.PREFERRED_SIZE, 92, GroupLayout.PREFERRED_SIZE))
-                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 39, Short.MAX_VALUE)
-                                        .addGroup(panel6Layout.createParallelGroup()
-                                            .addComponent(txtAmount, GroupLayout.PREFERRED_SIZE, 166, GroupLayout.PREFERRED_SIZE)
-                                            .addGroup(panel6Layout.createSequentialGroup()
-                                                .addComponent(rbLimitOrder, GroupLayout.PREFERRED_SIZE, 77, GroupLayout.PREFERRED_SIZE)
-                                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(rbMarketOrder)))
-                                        .addGap(20, 20, 20))
+                            panel6Layout.createParallelGroup()
                                     .addGroup(panel6Layout.createSequentialGroup()
-                                        .addGroup(panel6Layout.createParallelGroup()
-                                            .addComponent(label17, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
-                                            .addGroup(panel6Layout.createSequentialGroup()
-                                                .addGroup(panel6Layout.createParallelGroup()
-                                                    .addComponent(label14, GroupLayout.PREFERRED_SIZE, 128, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(label12, GroupLayout.PREFERRED_SIZE, 104, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(label13, GroupLayout.PREFERRED_SIZE, 104, GroupLayout.PREFERRED_SIZE)
-                                                    .addComponent(label15, GroupLayout.PREFERRED_SIZE, 104, GroupLayout.PREFERRED_SIZE))
-                                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                                .addGroup(panel6Layout.createParallelGroup()
-                                                    .addComponent(txtRobotTime)
+                                            .addContainerGap()
+                                            .addGroup(panel6Layout.createParallelGroup()
+                                                    .addGroup(GroupLayout.Alignment.TRAILING, panel6Layout.createSequentialGroup()
+                                                            .addGroup(panel6Layout.createParallelGroup()
+                                                                    .addComponent(label5, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
+                                                                    .addComponent(label4, GroupLayout.PREFERRED_SIZE, 92, GroupLayout.PREFERRED_SIZE))
+                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 39, Short.MAX_VALUE)
+                                                            .addGroup(panel6Layout.createParallelGroup()
+                                                                    .addComponent(txtAmount, GroupLayout.PREFERRED_SIZE, 166, GroupLayout.PREFERRED_SIZE)
+                                                                    .addGroup(panel6Layout.createSequentialGroup()
+                                                                            .addComponent(rbLimitOrder, GroupLayout.PREFERRED_SIZE, 77, GroupLayout.PREFERRED_SIZE)
+                                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                                                            .addComponent(rbMarketOrder)))
+                                                            .addGap(20, 20, 20))
                                                     .addGroup(panel6Layout.createSequentialGroup()
-                                                        .addGap(1, 1, 1)
-                                                        .addComponent(txtPauseTime, GroupLayout.PREFERRED_SIZE, 161, GroupLayout.PREFERRED_SIZE))
-                                                    .addComponent(txtExpireTime)
-                                                    .addGroup(panel6Layout.createSequentialGroup()
-                                                        .addComponent(txtDepthNum2, GroupLayout.PREFERRED_SIZE, 40, GroupLayout.PREFERRED_SIZE)
-                                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                                        .addComponent(label19)
-                                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                                        .addComponent(txtAvgValue2, GroupLayout.PREFERRED_SIZE, 48, GroupLayout.PREFERRED_SIZE)
-                                                        .addGap(1, 1, 1)
-                                                        .addComponent(label20, GroupLayout.PREFERRED_SIZE, 20, GroupLayout.PREFERRED_SIZE))
-                                                    .addComponent(rbAutoSell)))
-                                            .addGroup(panel6Layout.createSequentialGroup()
-                                                .addComponent(label10, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
-                                                .addGap(58, 58, 58)
-                                                .addComponent(label11, GroupLayout.PREFERRED_SIZE, 102, GroupLayout.PREFERRED_SIZE)
-                                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(txtPriceDiff, GroupLayout.PREFERRED_SIZE, 57, GroupLayout.PREFERRED_SIZE)))
-                                        .addGap(0, 0, Short.MAX_VALUE))))
+                                                            .addGroup(panel6Layout.createParallelGroup()
+                                                                    .addComponent(label17, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
+                                                                    .addGroup(panel6Layout.createSequentialGroup()
+                                                                            .addGroup(panel6Layout.createParallelGroup()
+                                                                                    .addComponent(label14, GroupLayout.PREFERRED_SIZE, 128, GroupLayout.PREFERRED_SIZE)
+                                                                                    .addComponent(label12, GroupLayout.PREFERRED_SIZE, 104, GroupLayout.PREFERRED_SIZE)
+                                                                                    .addComponent(label13, GroupLayout.PREFERRED_SIZE, 104, GroupLayout.PREFERRED_SIZE)
+                                                                                    .addComponent(label15, GroupLayout.PREFERRED_SIZE, 104, GroupLayout.PREFERRED_SIZE))
+                                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                                                            .addGroup(panel6Layout.createParallelGroup()
+                                                                                    .addComponent(txtRobotTime)
+                                                                                    .addGroup(panel6Layout.createSequentialGroup()
+                                                                                            .addGap(1, 1, 1)
+                                                                                            .addComponent(txtPauseTime, GroupLayout.PREFERRED_SIZE, 161, GroupLayout.PREFERRED_SIZE))
+                                                                                    .addComponent(txtExpireTime)
+                                                                                    .addGroup(panel6Layout.createSequentialGroup()
+                                                                                            .addComponent(txtDepthNum2, GroupLayout.PREFERRED_SIZE, 40, GroupLayout.PREFERRED_SIZE)
+                                                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                                                                            .addComponent(label19)
+                                                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                                                                            .addComponent(txtAvgValue2, GroupLayout.PREFERRED_SIZE, 48, GroupLayout.PREFERRED_SIZE)
+                                                                                            .addGap(1, 1, 1)
+                                                                                            .addComponent(label20, GroupLayout.PREFERRED_SIZE, 20, GroupLayout.PREFERRED_SIZE))
+                                                                                    .addComponent(rbAutoSell)))
+                                                                    .addGroup(panel6Layout.createSequentialGroup()
+                                                                            .addComponent(label10, GroupLayout.PREFERRED_SIZE, 73, GroupLayout.PREFERRED_SIZE)
+                                                                            .addGap(58, 58, 58)
+                                                                            .addComponent(label11, GroupLayout.PREFERRED_SIZE, 102, GroupLayout.PREFERRED_SIZE)
+                                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                                                            .addComponent(txtPriceDiff, GroupLayout.PREFERRED_SIZE, 57, GroupLayout.PREFERRED_SIZE)))
+                                                            .addGap(0, 0, Short.MAX_VALUE))))
                     );
-                    panel6Layout.linkSize(SwingConstants.HORIZONTAL, new Component[] {txtExpireTime, txtPauseTime, txtRobotTime});
+                    panel6Layout.linkSize(SwingConstants.HORIZONTAL, new Component[]{txtExpireTime, txtPauseTime, txtRobotTime});
                     panel6Layout.setVerticalGroup(
-                        panel6Layout.createParallelGroup()
-                            .addGroup(panel6Layout.createSequentialGroup()
-                                .addGap(15, 15, 15)
-                                .addComponent(label5, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                .addGap(10, 10, 10)
-                                .addGroup(panel6Layout.createParallelGroup()
-                                    .addComponent(label4, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(txtAmount, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                                .addGap(14, 14, 14)
-                                .addGroup(panel6Layout.createParallelGroup()
-                                    .addComponent(label10, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(label11, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(txtPriceDiff, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addGroup(panel6Layout.createParallelGroup()
-                                    .addComponent(label12, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(txtRobotTime, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                                .addGap(12, 12, 12)
-                                .addGroup(panel6Layout.createParallelGroup()
-                                    .addComponent(label15, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(txtPauseTime, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addGroup(panel6Layout.createParallelGroup()
-                                    .addComponent(label13, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(txtExpireTime, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addGroup(panel6Layout.createParallelGroup()
-                                    .addComponent(label14, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(rbAutoSell))
-                                .addGap(18, 18, 18)
-                                .addGroup(panel6Layout.createParallelGroup()
-                                    .addComponent(label17, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(txtDepthNum2, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(label19, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(txtAvgValue2, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(label20, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE))
-                                .addContainerGap(32, Short.MAX_VALUE))
-                            .addGroup(GroupLayout.Alignment.TRAILING, panel6Layout.createSequentialGroup()
-                                .addContainerGap(15, Short.MAX_VALUE)
-                                .addGroup(panel6Layout.createParallelGroup()
-                                    .addComponent(rbMarketOrder)
-                                    .addComponent(rbLimitOrder))
-                                .addGap(320, 320, 320))
+                            panel6Layout.createParallelGroup()
+                                    .addGroup(panel6Layout.createSequentialGroup()
+                                            .addGap(15, 15, 15)
+                                            .addComponent(label5, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                            .addGap(10, 10, 10)
+                                            .addGroup(panel6Layout.createParallelGroup()
+                                                    .addComponent(label4, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(txtAmount, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                            .addGap(14, 14, 14)
+                                            .addGroup(panel6Layout.createParallelGroup()
+                                                    .addComponent(label10, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(label11, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(txtPriceDiff, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                            .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                            .addGroup(panel6Layout.createParallelGroup()
+                                                    .addComponent(label12, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(txtRobotTime, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                            .addGap(12, 12, 12)
+                                            .addGroup(panel6Layout.createParallelGroup()
+                                                    .addComponent(label15, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(txtPauseTime, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                            .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                            .addGroup(panel6Layout.createParallelGroup()
+                                                    .addComponent(label13, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(txtExpireTime, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                            .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                            .addGroup(panel6Layout.createParallelGroup()
+                                                    .addComponent(label14, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(rbAutoSell))
+                                            .addGap(18, 18, 18)
+                                            .addGroup(panel6Layout.createParallelGroup()
+                                                    .addComponent(label17, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(txtDepthNum2, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(label19, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(txtAvgValue2, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(label20, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE))
+                                            .addContainerGap(32, Short.MAX_VALUE))
+                                    .addGroup(GroupLayout.Alignment.TRAILING, panel6Layout.createSequentialGroup()
+                                            .addContainerGap(15, Short.MAX_VALUE)
+                                            .addGroup(panel6Layout.createParallelGroup()
+                                                    .addComponent(rbMarketOrder)
+                                                    .addComponent(rbLimitOrder))
+                                            .addGap(320, 320, 320))
                     );
-                    panel6Layout.linkSize(SwingConstants.VERTICAL, new Component[] {txtExpireTime, txtPauseTime, txtRobotTime});
+                    panel6Layout.linkSize(SwingConstants.VERTICAL, new Component[]{txtExpireTime, txtPauseTime, txtRobotTime});
                 }
                 panel2.add(panel6);
                 panel6.setBounds(370, 5, 335, 385);
@@ -756,11 +784,11 @@ public class CoinBigPanel extends JPanel {
                     label6.setHorizontalAlignment(SwingConstants.LEFT);
 
                     //---- cbStrategy ----
-                    cbStrategy.setModel(new DefaultComboBoxModel<>(new String[] {
-                        "Avg",
-                        "Last",
-                        "Bid",
-                        "Mid"
+                    cbStrategy.setModel(new DefaultComboBoxModel<>(new String[]{
+                            "Avg",
+                            "Last",
+                            "Bid",
+                            "Mid"
                     }));
                     cbStrategy.addItemListener(e -> cbStrategyItemStateChanged(e));
 
@@ -797,29 +825,29 @@ public class CoinBigPanel extends JPanel {
                     GroupLayout panel7Layout = new GroupLayout(panel7);
                     panel7.setLayout(panel7Layout);
                     panel7Layout.setHorizontalGroup(
-                        panel7Layout.createParallelGroup()
-                            .addGroup(panel7Layout.createSequentialGroup()
-                                .addGroup(panel7Layout.createParallelGroup()
+                            panel7Layout.createParallelGroup()
                                     .addGroup(panel7Layout.createSequentialGroup()
-                                        .addGap(15, 15, 15)
-                                        .addComponent(label6, GroupLayout.PREFERRED_SIZE, 61, GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                                        .addComponent(cbStrategy, GroupLayout.PREFERRED_SIZE, 205, GroupLayout.PREFERRED_SIZE))
-                                    .addGroup(panel7Layout.createSequentialGroup()
-                                        .addContainerGap()
-                                        .addComponent(panelAvg, GroupLayout.PREFERRED_SIZE, 284, GroupLayout.PREFERRED_SIZE)))
-                                .addContainerGap(30, Short.MAX_VALUE))
+                                            .addGroup(panel7Layout.createParallelGroup()
+                                                    .addGroup(panel7Layout.createSequentialGroup()
+                                                            .addGap(15, 15, 15)
+                                                            .addComponent(label6, GroupLayout.PREFERRED_SIZE, 61, GroupLayout.PREFERRED_SIZE)
+                                                            .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                                            .addComponent(cbStrategy, GroupLayout.PREFERRED_SIZE, 205, GroupLayout.PREFERRED_SIZE))
+                                                    .addGroup(panel7Layout.createSequentialGroup()
+                                                            .addContainerGap()
+                                                            .addComponent(panelAvg, GroupLayout.PREFERRED_SIZE, 284, GroupLayout.PREFERRED_SIZE)))
+                                            .addContainerGap(30, Short.MAX_VALUE))
                     );
                     panel7Layout.setVerticalGroup(
-                        panel7Layout.createParallelGroup()
-                            .addGroup(panel7Layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addGroup(panel7Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                    .addComponent(label6, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(cbStrategy, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(panelAvg, GroupLayout.PREFERRED_SIZE, 40, GroupLayout.PREFERRED_SIZE)
-                                .addContainerGap(52, Short.MAX_VALUE))
+                            panel7Layout.createParallelGroup()
+                                    .addGroup(panel7Layout.createSequentialGroup()
+                                            .addContainerGap()
+                                            .addGroup(panel7Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                                    .addComponent(label6, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+                                                    .addComponent(cbStrategy, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                            .addComponent(panelAvg, GroupLayout.PREFERRED_SIZE, 40, GroupLayout.PREFERRED_SIZE)
+                                            .addContainerGap(52, Short.MAX_VALUE))
                     );
                 }
                 panel2.add(panel7);
@@ -833,9 +861,20 @@ public class CoinBigPanel extends JPanel {
                 panel2.add(lTrial);
                 lTrial.setBounds(485, 405, 190, 28);
 
+                //---- btnSave ----
+                btnSave.setText("\u4fdd\u5b58");
+                btnSave.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mousePressed(MouseEvent e) {
+                        btnSaveMousePressed(e);
+                    }
+                });
+                panel2.add(btnSave);
+                btnSave.setBounds(420, 400, 100, 40);
+
                 { // compute preferred size
                     Dimension preferredSize = new Dimension();
-                    for(int i = 0; i < panel2.getComponentCount(); i++) {
+                    for (int i = 0; i < panel2.getComponentCount(); i++) {
                         Rectangle bounds = panel2.getComponent(i).getBounds();
                         preferredSize.width = Math.max(bounds.x + bounds.width, preferredSize.width);
                         preferredSize.height = Math.max(bounds.y + bounds.height, preferredSize.height);
@@ -868,7 +907,7 @@ public class CoinBigPanel extends JPanel {
 
                 { // compute preferred size
                     Dimension preferredSize = new Dimension();
-                    for(int i = 0; i < panel1.getComponentCount(); i++) {
+                    for (int i = 0; i < panel1.getComponentCount(); i++) {
                         Rectangle bounds = panel1.getComponent(i).getBounds();
                         preferredSize.width = Math.max(bounds.x + bounds.width, preferredSize.width);
                         preferredSize.height = Math.max(bounds.y + bounds.height, preferredSize.height);
@@ -900,7 +939,7 @@ public class CoinBigPanel extends JPanel {
 
                 { // compute preferred size
                     Dimension preferredSize = new Dimension();
-                    for(int i = 0; i < panel3.getComponentCount(); i++) {
+                    for (int i = 0; i < panel3.getComponentCount(); i++) {
                         Rectangle bounds = panel3.getComponent(i).getBounds();
                         preferredSize.width = Math.max(bounds.x + bounds.width, preferredSize.width);
                         preferredSize.height = Math.max(bounds.y + bounds.height, preferredSize.height);
@@ -921,7 +960,7 @@ public class CoinBigPanel extends JPanel {
 
         { // compute preferred size
             Dimension preferredSize = new Dimension();
-            for(int i = 0; i < getComponentCount(); i++) {
+            for (int i = 0; i < getComponentCount(); i++) {
                 Rectangle bounds = getComponent(i).getBounds();
                 preferredSize.width = Math.max(bounds.x + bounds.width, preferredSize.width);
                 preferredSize.height = Math.max(bounds.y + bounds.height, preferredSize.height);
@@ -951,7 +990,7 @@ public class CoinBigPanel extends JPanel {
     private JTextField txtAccessKey;
     private JLabel label7;
     private JTextField txtAuthCode;
-    private JPasswordField txtSecretKey;
+    private JTextField txtSecretKey;
     private JPanel panel5;
     private JRadioButton radioButton1;
     private JRadioButton radioButton2;
@@ -992,6 +1031,7 @@ public class CoinBigPanel extends JPanel {
     private JLabel label9;
     private JTextField txtAvgValue;
     private JLabel lTrial;
+    private JButton btnSave;
     private JPanel panel1;
     private JScrollPane scrollPane2;
     private JTextPane txtLog;

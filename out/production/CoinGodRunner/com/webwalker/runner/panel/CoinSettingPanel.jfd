@@ -8,7 +8,6 @@ new FormModel {
 			"preferredSize": new java.awt.Dimension( 720, 445 )
 			"minimumSize": new java.awt.Dimension( 720, 445 )
 			"maximumSize": new java.awt.Dimension( 720, 445 )
-			addEvent( new FormEvent( "java.awt.event.ContainerListener", "componentAdded", "thisComponentAdded", true ) )
 			addEvent( new FormEvent( "java.awt.event.ComponentListener", "componentHidden", "thisComponentHidden", true ) )
 			addEvent( new FormEvent( "java.awt.event.ComponentListener", "componentShown", "thisComponentShown", true ) )
 			add( new FormContainer( "javax.swing.JTabbedPane", new FormLayoutManager( class javax.swing.JTabbedPane ) ) {
@@ -22,8 +21,8 @@ new FormModel {
 					name: "panel2"
 					"minimumSize": new java.awt.Dimension( 715, 445 )
 					add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class org.jdesktop.layout.GroupLayout ) {
-						"$horizontalGroup": "par l {seq {space :::p, par l {comp label1::l:::x, comp label2::l:p:73:p, comp label7::l:p:73:p}, space u:::p, par l {comp txtAccessKey:2:l:p:220:p, comp txtSecretKey:2:l:p:119:p, comp txtAuthCode:2:l:p:220:p}, space :::x}}"
-						"$verticalGroup": "par l {seq t {par b {comp label1::b:p:28:p, comp txtAccessKey:1:b:p::p}, space ::12:x, par l {comp label2:::p:28:p, comp txtSecretKey:1::p:28:p}, space :::p, par b {comp label7::b:p:24:p, comp txtAuthCode:1:b:p::p}, space :p:14:p}}"
+						"$horizontalGroup": "par l {seq {space :::p, par l {seq {par l {comp label1::l:::x, comp label7::l:p:73:p}, space u:::p, par l {comp txtAccessKey:2:l:p:220:p, comp txtAuthCode:2:l:p:220:p}, space ::12:x}, seq l {comp label2:::p:73:p, space u:::p, comp txtSecretKey:::p:220:p, space ::12:x}}}}"
+						"$verticalGroup": "par l {seq t {par b {comp label1::b:p:28:p, comp txtAccessKey:1:b:p::p}, space :::p, par l {comp label2::t:p:28:p, comp txtSecretKey::t:p::p}, space ::12:x, par b {comp label7::b:p:24:p, comp txtAuthCode:1:b:p::p}, space :p:14:p}}"
 					} ) {
 						name: "panel4"
 						"border": new javax.swing.border.TitledBorder( "API设置" )
@@ -40,7 +39,7 @@ new FormModel {
 						add( new FormComponent( "javax.swing.JTextField" ) {
 							name: "txtAccessKey"
 							"horizontalAlignment": 2
-							"cursor": new java.awt.Cursor( 2 )
+							"cursor": &Cursor0 new java.awt.Cursor( 2 )
 						} )
 						add( new FormComponent( "javax.swing.JLabel" ) {
 							name: "label7"
@@ -52,10 +51,10 @@ new FormModel {
 							"horizontalAlignment": 2
 							addEvent( new FormEvent( "java.awt.event.KeyListener", "keyPressed", "txtAuthCodeKeyPressed", true ) )
 						} )
-						add( new FormComponent( "javax.swing.JPasswordField" ) {
+						add( new FormComponent( "javax.swing.JTextField" ) {
 							name: "txtSecretKey"
 							"horizontalAlignment": 2
-							"maximumSize": new java.awt.Dimension( 12, 26 )
+							"cursor": #Cursor0
 						} )
 					}, new FormLayoutConstraints( class com.jformdesigner.runtime.NullConstraints ) {
 						"x": 20
@@ -109,7 +108,7 @@ new FormModel {
 						"text": "启动"
 						addEvent( new FormEvent( "java.awt.event.MouseListener", "mousePressed", "btnStartMousePressed", true ) )
 					}, new FormLayoutConstraints( class com.jformdesigner.runtime.NullConstraints ) {
-						"x": 255
+						"x": 190
 						"y": 400
 						"width": 100
 						"height": 40
@@ -121,7 +120,7 @@ new FormModel {
 					}, new FormLayoutConstraints( class com.jformdesigner.runtime.NullConstraints ) {
 						"width": 100
 						"height": 40
-						"x": 370
+						"x": 305
 						"y": 400
 					} )
 					add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class org.jdesktop.layout.GroupLayout ) {
@@ -323,6 +322,16 @@ new FormModel {
 						"x": 485
 						"y": 405
 					} )
+					add( new FormComponent( "javax.swing.JButton" ) {
+						name: "btnSave"
+						"text": "保存"
+						addEvent( new FormEvent( "java.awt.event.MouseListener", "mousePressed", "btnSaveMousePressed", true ) )
+					}, new FormLayoutConstraints( class com.jformdesigner.runtime.NullConstraints ) {
+						"width": 100
+						"height": 40
+						"x": 420
+						"y": 400
+					} )
 				}, new FormLayoutConstraints( null ) {
 					"title": "参数设置"
 				} )
@@ -382,3 +391,4 @@ new FormModel {
 		} )
 	}
 }
+

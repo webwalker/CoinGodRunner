@@ -1,5 +1,7 @@
 package com.webwalker.runner.panel;
 
+import com.webwalker.core.config.PlatformType;
+import com.webwalker.runner.task.TaskController;
 import com.webwalker.runner.utility.FrameUtil;
 
 import java.awt.*;
@@ -28,11 +30,23 @@ public class MainPanel extends JPanel {
     }
 
     private void label1MousePressed(MouseEvent e) {
-        FrameUtil.open(new MultiAccountPanel(), "CoinBig挖矿机器人");
+        MultiAccountPanel panel = MultiAccountPanel.getInstance(PlatformType.CoinBig);
+        if (!panel.isVisible()) {
+            FrameUtil.open2(panel, "CoinBig挖矿机器人", new WindowAdapter() {
+                @Override
+                public void windowActivated(WindowEvent e) {
+                    panel.reload();
+                }
+
+                @Override
+                public void windowDeactivated(WindowEvent e) {
+                    super.windowDeactivated(e);
+                }
+            });
+        }
     }
 
     private void label2MousePressed(MouseEvent e) {
-        //FrameUtil.open(new MultiAccountPanel(), "ZBG挖矿机器人");
     }
 
     private void label2MouseEntered(MouseEvent e) {
@@ -52,7 +66,6 @@ public class MainPanel extends JPanel {
     }
 
     private void label3MousePressed(MouseEvent e) {
-        //FrameUtil.open(new MultiAccountPanel(), "EXX挖矿机器人");
     }
 
     private void initComponents() {
@@ -80,10 +93,12 @@ public class MainPanel extends JPanel {
             public void mouseEntered(MouseEvent e) {
                 label1MouseEntered(e);
             }
+
             @Override
             public void mouseExited(MouseEvent e) {
                 label1MouseExited(e);
             }
+
             @Override
             public void mousePressed(MouseEvent e) {
                 label1MousePressed(e);
@@ -106,10 +121,12 @@ public class MainPanel extends JPanel {
             public void mouseEntered(MouseEvent e) {
                 label2MouseEntered(e);
             }
+
             @Override
             public void mouseExited(MouseEvent e) {
                 label2MouseExited(e);
             }
+
             @Override
             public void mousePressed(MouseEvent e) {
                 label2MousePressed(e);
@@ -132,10 +149,12 @@ public class MainPanel extends JPanel {
             public void mouseEntered(MouseEvent e) {
                 label3MouseEntered(e);
             }
+
             @Override
             public void mouseExited(MouseEvent e) {
                 label3MouseExited(e);
             }
+
             @Override
             public void mousePressed(MouseEvent e) {
                 label3MousePressed(e);
@@ -146,7 +165,7 @@ public class MainPanel extends JPanel {
 
         { // compute preferred size
             Dimension preferredSize = new Dimension();
-            for(int i = 0; i < getComponentCount(); i++) {
+            for (int i = 0; i < getComponentCount(); i++) {
                 Rectangle bounds = getComponent(i).getBounds();
                 preferredSize.width = Math.max(bounds.x + bounds.width, preferredSize.width);
                 preferredSize.height = Math.max(bounds.y + bounds.height, preferredSize.height);
