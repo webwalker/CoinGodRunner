@@ -24,7 +24,7 @@ public class CoinGodUIRunner {
         //panel.pack();
         frame.setLocationRelativeTo(null);
         frame.setResizable(false);
-        frame.setTitle("CoinGod V1.0.4");
+        frame.setTitle("CoinGod V1.1.0");
         frame.setIconImage(new ImageIcon("/img/icon.jpg").getImage());
 
         frame.setContentPane(new MainPanel());

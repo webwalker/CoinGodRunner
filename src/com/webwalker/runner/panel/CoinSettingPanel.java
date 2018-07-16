@@ -63,6 +63,8 @@ public class CoinSettingPanel extends JPanel {
         txtAccessKey.setText(resetParam.accessKey);
         txtSecretKey.setText(resetParam.secretKey);
         txtAuthCode.setText(resetParam.authCode);
+        radioButton1.setSelected(true);
+        cbStrategy.setSelectedItem("Last");
     }
 
     private void init() {
@@ -331,6 +333,7 @@ public class CoinSettingPanel extends JPanel {
     private void btnSaveMousePressed(MouseEvent e) {
         if (saveConfig()) {
             TaskController.showMessage(this, "保存成功");
+            MultiAccountPanel.getInstance(platform).reload();
         }
     }
 
