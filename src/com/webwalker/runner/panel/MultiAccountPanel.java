@@ -121,15 +121,15 @@ public class MultiAccountPanel extends JPanel {
     }
 
     private int checkSelected() {
-        if (table1.getRowCount() == 0) return 0;
+        if (table1.getRowCount() == 0) return -1;
         int row = table1.getSelectedRow();
         if (row < 0) {
             TaskController.showMessage(this, "请选择一个任务");
-            return 0;
+            return -1;
         }
         key = (String) table1.getValueAt(row, 1);
         if (StringUtil.isEmpty(key)) {
-            return 0;
+            return -1;
         }
         return row;
     }
@@ -149,7 +149,7 @@ public class MultiAccountPanel extends JPanel {
 
     private void btnDeleteAccountMousePressed(MouseEvent e) {
         int row = checkSelected();
-        if (row == 0) return;
+        if (row < 0) return;
         ConfigItem ci = ConfigResolver.getConfig(platform.getName());
         if (ci == null) return;
         java.util.List<TaskParams> params = ci.configs;
@@ -175,7 +175,7 @@ public class MultiAccountPanel extends JPanel {
 
     private void btnStartMousePressed(MouseEvent e) {
         int row = checkSelected();
-        if (row == 0) return;
+        if (row < 0) return;
         TaskParams params = config.configs.get(row);
         if (params != null) {
             TaskController.start(this, platform.getName(), key, params.authCode);
@@ -183,7 +183,7 @@ public class MultiAccountPanel extends JPanel {
     }
 
     private void btnPauseMousePressed(MouseEvent e) {
-        if (checkSelected() <= 0) return;
+        if (checkSelected() < 0) return;
         TaskController.pause(this, platform.getName(), key);
     }
 

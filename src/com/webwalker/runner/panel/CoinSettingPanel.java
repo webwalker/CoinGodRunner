@@ -14,7 +14,7 @@ import javax.swing.*;
 import javax.swing.border.*;
 
 import com.webwalker.adapter.controller.AbsController;
-import com.webwalker.adapter.controller.coinbig.model.SymbolsResult;
+import com.webwalker.adapter.controller.coinbig.model.SymbolResult;
 import com.webwalker.adapter.strategy.StrategyFactory;
 import com.webwalker.core.auth.AuthResolver;
 import com.webwalker.core.config.*;
@@ -104,9 +104,9 @@ public class CoinSettingPanel extends JPanel {
 
     private void getSymbols(String symbol, ICallback<List<String>> callback) {
         if (symbol.length() == 0) return;
-        controller.symbol(new ICallback<SymbolsResult>() {
+        controller.symbol(new ICallback<SymbolResult>() {
             @Override
-            public void action(SymbolsResult result) {
+            public void action(SymbolResult result) {
                 List<String> list = result.data;
                 List<String> matches = new ArrayList<>();
                 for (String s : list) {
